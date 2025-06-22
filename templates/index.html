@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scripture Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fef08a 0%, #fde047 50%, #facc15 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Interactive cursor effects */
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s ease;
+            mix-blend-mode: difference;
+        }
+
+        .cursor-trail {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transition: all 0.3s ease;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 6s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1f2937;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            font-weight: 700;
+            background: linear-gradient(45deg, #1f2937, #374151);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: transform 0.3s ease;
+        }
+
+        .header h1:hover {
+            transform: scale(1.05);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chat-section, .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            height: 650px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .chat-section:hover, .results-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #1f2937;
+            border-bottom: 3px solid #fde047;
+            padding-bottom: 15px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: #facc15;
+            animation: slideRight 2s ease-in-out infinite;
+        }
+
+        @keyframes slideRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(200px); }
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #fefce8;
+            border-radius: 15px;
+            border: 2px solid #fde047;
+            scrollbar-width: thin;
+            scrollbar-color: #fde047 #fefce8;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #fefce8;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #fde047;
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 15px;
+            max-width: 85%;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .message:hover::before {
+            left: 100%;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #fde047, #facc15);
+            color: #1f2937;
+            margin-left: auto;
+            text-align: right;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(253, 224, 71, 0.3);
+        }
+
+        .assistant-message {
+            background: linear-gradient(135deg, #fefce8, #fef3c7);
+            color: #1f2937;
+            border: 2px solid #fde047;
+            font-weight: 400;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px 20px;
+            border: 3px solid #fde047;
+            border-radius: 30px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #fefce8;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .input-field:focus {
+            border-color: #facc15;
+            box-shadow: 0 0 20px rgba(253, 224, 71, 0.3);
+            transform: scale(1.02);
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fde047, #facc15);
+            color: #1f2937;
+            box-shadow: 0 4px 15px rgba(253, 224, 71, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #facc15, #eab308);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(253, 224, 71, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .mic-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+            position: relative;
+        }
+
+        .mic-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .mic-btn.recording {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .results-content {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #fde047 #fefce8;
+        }
+
+        .results-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-content::-webkit-scrollbar-track {
+            background: #fefce8;
+            border-radius: 4px;
+        }
+
+        .results-content::-webkit-scrollbar-thumb {
+            background: #fde047;
+            border-radius: 4px;
+        }
+
+        .verse-card {
+            background: linear-gradient(135deg, #fefce8, #fef3c7);
+            border: 2px solid #fde047;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verse-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(253, 224, 71, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .verse-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(253, 224, 71, 0.3);
+            border-color: #facc15;
+        }
+
+        .verse-card:hover::before {
+            left: 100%;
+        }
+
+        .verse-reference {
+            font-weight: 700;
+            color: #eab308;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .verse-text {
+            color: #1f2937;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .llm-analysis {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-left: 5px solid #3b82f6;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 0 15px 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .llm-analysis::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.1) 50%, transparent 70%);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .llm-analysis h4 {
+            color: #1e40af;
+            margin-bottom: 12px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .confidence-high { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .confidence-medium { background: linear-gradient(135deg, #facc15, #eab308); color: white; }
+        .confidence-low { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 4px solid #fde047;
+            border-top: 4px solid #facc15;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #fefce8, #fef3c7);
+            border-radius: 25px;
+            font-size: 0.95rem;
+            color: #1f2937;
+            font-weight: 500;
+            border: 2px solid #fde047;
+            box-shadow: 0 4px 15px rgba(253, 224, 71, 0.2);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+
+            .chat-section, .results-section {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Interactive cursor elements -->
+    <div class="cursor-follower"></div>
+    <div class="cursor-trail"></div>
+
+    <!-- Floating particles -->
+    <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+    <div class="particle" style="left: 40%; animation-delay: 1s;"></div>
+    <div class="particle" style="left: 50%; animation-delay: 3s;"></div>
+    <div class="particle" style="left: 60%; animation-delay: 5s;"></div>
+    <div class="particle" style="left: 70%; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 80%; animation-delay: 4s;"></div>
+    <div class="particle" style="left: 90%; animation-delay: 1s;"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Scripture Finder</h1>
+            <p>Ask questions naturally, search verses, and get intelligent explanations</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Chat Section -->
+            <div class="chat-section">
+                <h2 class="section-title">Conversational AI</h2>
+                
+                <div class="controls">
+                    <div class="status-indicator">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span id="statusText">Ready</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearHistory()">Clear History</button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant-message">
+                        Hello! I'm your Scripture Finder. You can ask me questions like:
+                        <br>• "What does the Bible say about love?"
+                        <br>• "I remember something about golden lampstands"
+                        <br>• "Tell me about John 3:16"
+                        <br><br>Just speak or type naturally!
+                        <br><br><strong>Setup:</strong> For AI-powered analysis, get a free Gemini API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a> and add it to your .env file.
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <input type="text" id="userInput" class="input-field" placeholder="Ask me anything about the Bible..." onkeypress="handleKeyPress(event)">
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                    <button class="mic-btn" id="micBtn" onclick="toggleSpeechRecognition()">MIC</button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section">
+                <h2 class="section-title">Bible Verses & Analysis</h2>
+                <div class="results-content" id="resultsContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Ready to search and analyze Bible verses...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let recognition = null;
+        let conversationHistory = [];
+
+        // Interactive cursor effects
+        const cursorFollower = document.querySelector('.cursor-follower');
+        const cursorTrail = document.querySelector('.cursor-trail');
+        let mouseX = 0, mouseY = 0;
+        let trailX = 0, trailY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function updateCursor() {
+            // Main cursor follower
+            cursorFollower.style.left = mouseX - 10 + 'px';
+            cursorFollower.style.top = mouseY - 10 + 'px';
+
+            // Cursor trail
+            trailX += (mouseX - trailX) * 0.1;
+            trailY += (mouseY - trailY) * 0.1;
+            cursorTrail.style.left = trailX - 4 + 'px';
+            cursorTrail.style.top = trailY - 4 + 'px';
+
+            requestAnimationFrame(updateCursor);
+        }
+        updateCursor();
+
+        // Initialize speech recognition
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    document.getElementById('micBtn').classList.add('recording');
+                    updateStatus('Listening...', 'recording');
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('userInput').value = transcript;
+                    sendMessage();
+                };
+
+                recognition.onend = function() {
+                    isRecording = false;
+                    document.getElementById('micBtn').classList.remove('recording');
+                    updateStatus('Ready', 'ready');
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    updateStatus('Error: ' + event.error, 'error');
+                    isRecording = false;
+                    document.getElementById('micBtn').classList.remove('recording');
+                };
+            } else {
+                console.warn('Speech recognition not supported');
+                document.getElementById('micBtn').style.display = 'none';
+            }
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) return;
+            
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function updateStatus(text, type) {
+            const statusText = document.getElementById('statusText');
+            const statusDot = document.getElementById('statusDot');
+            
+            statusText.textContent = text;
+            statusDot.className = 'status-dot ' + type;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            // Show loading
+            updateStatus('Processing...', 'processing');
+            showLoading();
+
+            try {
+                const response = await fetch('/api/intelligent-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: message })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.results);
+                    
+                    // Add assistant response to chat
+                    const explanation = data.results.llm_analysis.explanation;
+                    
+                    // Check if AI is not configured
+                    if (explanation.includes('AI analysis not available') || explanation.includes('not configured')) {
+                        addMessage(`I can still search Bible verses for you, but I need a Gemini API key for intelligent analysis. Here's what I found: ${explanation}`, 'assistant');
+                    } else {
+                        addMessage(explanation, 'assistant');
+                    }
+                } else {
+                    throw new Error(data.error || 'Search failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                updateStatus('Error occurred', 'error');
+            } finally {
+                hideLoading();
+                updateStatus('Ready', 'ready');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showLoading() {
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Searching and analyzing...</p>
+                </div>
+            `;
+        }
+
+        function hideLoading() {
+            // Loading will be replaced by results
+        }
+
+        function displayResults(results) {
+            const resultsContent = document.getElementById('resultsContent');
+            let html = '';
+
+            // LLM Analysis
+            if (results.llm_analysis) {
+                const analysis = results.llm_analysis;
+                const confidenceClass = `confidence-${analysis.confidence?.toLowerCase() || 'medium'}`;
+                
+                html += `
+                    <div class="llm-analysis">
+                        <h4>AI Analysis 
+                            <span class="confidence-badge ${confidenceClass}">
+                                ${analysis.confidence || 'Medium'} Confidence
+                            </span>
+                        </h4>
+                        <p><strong>Explanation:</strong> ${analysis.explanation}</p>
+                        <p><strong>Reasoning:</strong> ${analysis.reasoning}</p>
+                        ${analysis.refined_query && analysis.refined_query !== results.original_query ? 
+                            `<p><strong>Refined Query:</strong> "${analysis.refined_query}"</p>` : ''}
+                    </div>
+                `;
+            }
+
+            // Bible Results
+            const bibleResults = results.bible_results;
+            
+            // Biblia results
+            if (bibleResults.biblia && bibleResults.biblia.results) {
+                html += '<h3>Biblia.com Results</h3>';
+                bibleResults.biblia.results.forEach(result => {
+                    html += `
+                        <div class="verse-card">
+                            <div class="verse-reference">${result.reference}</div>
+                            <div class="verse-text">${result.text}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Bible API results
+            if (bibleResults.bible_api) {
+                html += '<h3>Bible API Results</h3>';
+                if (bibleResults.bible_api.verses) {
+                    bibleResults.bible_api.verses.forEach(verse => {
+                        html += `
+                            <div class="verse-card">
+                                <div class="verse-reference">${verse.book_name} ${verse.chapter}:${verse.verse}</div>
+                                <div class="verse-text">${verse.text}</div>
+                            </div>
+                        `;
+                    });
+                } else if (bibleResults.bible_api.text) {
+                    html += `
+                        <div class="verse-card">
+                            <div class="verse-reference">${bibleResults.bible_api.reference}</div>
+                            <div class="verse-text">${bibleResults.bible_api.text}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Refined Results
+            if (results.refined_results) {
+                html += '<h3>Refined Search Results</h3>';
+                const refined = results.refined_results;
+                
+                if (refined.biblia && refined.biblia.results) {
+                    refined.biblia.results.forEach(result => {
+                        html += `
+                            <div class="verse-card">
+                                <div class="verse-reference">${result.reference} (Refined)</div>
+                                <div class="verse-text">${result.text}</div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            if (!html) {
+                html = '<div class="loading"><p>No verses found. Try a different search term.</p></div>';
+            }
+
+            resultsContent.innerHTML = html;
+        }
+
+        async function clearHistory() {
+            try {
+                await fetch('/api/clear-history', { method: 'POST' });
+                document.getElementById('chatMessages').innerHTML = `
+                    <div class="message assistant-message">
+                        History cleared! How can I help you today?
+                    </div>
+                `;
+                document.getElementById('resultsContent').innerHTML = `
+                    <div class="loading">
+                        <p>Ready for new searches...</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error clearing history:', error);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initSpeechRecognition();
+            updateStatus('Ready', 'ready');
+        });
+    </script>
+</body>
+</html> 

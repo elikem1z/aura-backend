@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: scripture-finder
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python app.py
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: BIBLE_API_KEY
+        value: a1692756d99fab00256e70dbda406cc7
+      - key: FLASK_ENV
+        value: production 
