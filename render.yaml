@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aura-voice-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main_voice:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /ping
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0 

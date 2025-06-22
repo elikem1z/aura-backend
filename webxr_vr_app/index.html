@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura VR - Voice-First Image Analysis</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+        }
+
+        #ui-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 400px;
+        }
+
+        .status {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #F44336;
+        }
+
+        .status.processing {
+            background: rgba(255, 193, 7, 0.3);
+            border: 1px solid #FFC107;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        .info {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+
+        #audio-player {
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #vr-scene {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .vr-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: none;
+        }
+
+        .vr-ui.active {
+            display: block;
+        }
+
+        .vr-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .vr-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-container">
+        <h2>🎮 Aura VR Assistant</h2>
+        <div id="status" class="status disconnected">
+            🔴 Disconnected from Backend
+        </div>
+        
+        <div class="controls">
+            <button id="connect-btn" onclick="connectToBackend()">
+                🔗 Connect to Backend
+            </button>
+            <button id="capture-btn" onclick="captureScreenshot()" disabled>
+                📸 Capture/Upload Image
+            </button>
+            <button id="analyze-btn" onclick="analyzeImage()" disabled>
+                🔍 Analyze Image
+            </button>
+            <button id="voice-btn" onclick="startVoiceQuery()" disabled>
+                🎤 Voice Query
+            </button>
+        </div>
+
+        <div id="audio-container" style="display: none;">
+            <h4>🎵 Generated Audio:</h4>
+            <audio id="audio-player" controls></audio>
+        </div>
+
+        <div class="info">
+            <p><strong>Instructions:</strong></p>
+            <p>1. Connect to your FastAPI backend</p>
+            <p>2. Capture a screenshot of your VR view</p>
+            <p>3. Analyze the image or ask a voice question</p>
+            <p>4. Listen to the AI's response</p>
+        </div>
+    </div>
+
+    <div id="vr-scene">
+        <div id="vr-ui" class="vr-ui">
+            <h2>🎮 Aura VR Assistant</h2>
+            <p>Use your controller to interact</p>
+            <button class="vr-button" onclick="captureScreenshot()">
+                📸 Capture Screenshot
+            </button>
+            <button class="vr-button" onclick="startVoiceQuery()">
+                🎤 Voice Query
+            </button>
+            <button class="vr-button" onclick="hideVRUI()">
+                ❌ Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Three.js and WebXR libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/VRButton.js"></script>
+
+    <!-- Application script -->
+    <script src="app.js"></script>
+
+    <script>
+        // Global app instance
+        let auraApp;
+
+        // Initialize app when page loads
+        window.addEventListener('load', () => {
+            auraApp = new AuraVRApp();
+        });
+
+        // Global functions for button clicks
+        function connectToBackend() {
+            if (auraApp) {
+                auraApp.testBackendConnection();
+            }
+        }
+
+        function captureScreenshot() {
+            if (auraApp) {
+                auraApp.captureScreenshot();
+            }
+        }
+
+        function analyzeImage() {
+            if (auraApp) {
+                auraApp.analyzeImage();
+            }
+        }
+
+        function startVoiceQuery() {
+            if (auraApp) {
+                auraApp.startVoiceQuery();
+            }
+        }
+
+        function hideVRUI() {
+            if (auraApp) {
+                auraApp.hideVRUI();
+            }
+        }
+    </script>
+</body>
+</html> 

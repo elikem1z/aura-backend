@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .result {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .result.true {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        
+        .result.false {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #F44336;
+        }
+        
+        .info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Device Detection Test</h1>
+        <p>This page tests the device detection logic used in the Aura VR app.</p>
+        
+        <div id="results"></div>
+        
+        <div class="info">
+            <h3>📋 What this means:</h3>
+            <ul>
+                <li><strong>VR Supported:</strong> Device can run WebXR VR experiences</li>
+                <li><strong>Mobile Device:</strong> Phone or tablet (not desktop/laptop)</li>
+                <li><strong>Expected Behavior:</strong> Mobile devices should show "Take Photo" button, desktop should show "Upload Image"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkVRSupport() {
+            const hasXR = 'xr' in navigator;
+            const hasSessionSupport = navigator.xr && navigator.xr.isSessionSupported;
+            
+            return {
+                hasXR,
+                hasSessionSupport,
+                supported: hasXR && hasSessionSupport
+            };
+        }
+
+        function checkMobileDevice() {
+            const userAgent = navigator.userAgent;
+            const screenWidth = window.innerWidth;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
+                   screenWidth <= 768;
+            
+            return {
+                userAgent,
+                screenWidth,
+                isMobile
+            };
+        }
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            
+            const vrCheck = checkVRSupport();
+            const mobileCheck = checkMobileDevice();
+            
+            let html = `
+                <h2>📱 Device Information</h2>
+                
+                <div class="result ${vrCheck.supported ? 'true' : 'false'}">
+                    🎮 VR Support: ${vrCheck.supported ? '✅ Supported' : '❌ Not Supported'}
+                </div>
+                
+                <div class="result ${mobileCheck.isMobile ? 'true' : 'false'}">
+                    📱 Mobile Device: ${mobileCheck.isMobile ? '✅ Yes' : '❌ No'}
+                </div>
+                
+                <div class="info">
+                    <h3>🔧 Technical Details:</h3>
+                    <p><strong>Screen Width:</strong> ${mobileCheck.screenWidth}px</p>
+                    <p><strong>Has XR API:</strong> ${vrCheck.hasXR ? 'Yes' : 'No'}</p>
+                    <p><strong>Has Session Support:</strong> ${vrCheck.hasSessionSupport ? 'Yes' : 'No'}</p>
+                </div>
+                
+                <div class="info">
+                    <h3>📄 User Agent:</h3>
+                    <pre>${mobileCheck.userAgent}</pre>
+                </div>
+                
+                <div class="info">
+                    <h3>🎯 Expected App Behavior:</h3>
+                    <p><strong>Title:</strong> ${mobileCheck.isMobile ? '📱 Aura Mobile Assistant' : '💻 Aura Desktop Assistant'}</p>
+                    <p><strong>Capture Button:</strong> ${mobileCheck.isMobile ? '📷 Take Photo' : '📁 Upload Image'}</p>
+                    <p><strong>VR Button:</strong> ${vrCheck.supported ? 'Will show VR button' : 'No VR button (not supported)'}</p>
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run test on page load
+        window.addEventListener('load', displayResults);
+        
+        // Re-run test on window resize
+        window.addEventListener('resize', displayResults);
+    </script>
+</body>
+</html> 
