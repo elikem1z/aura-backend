@@ -3,110 +3,167 @@
 Voice Manager for Aura Vision Assistant
 
 Handles:
-- Text-to-Speech via Vapi
+- Text-to-Speech via Google Cloud TTS
 - Voice query processing
 - Session management for voice interactions
 """
 
 import os
+import base64
+import json
 import uuid
-import requests
 import asyncio
+import aiohttp
 from datetime import datetime
 from typing import Dict, Any, Optional
+from dotenv import load_dotenv
 
-# Set API keys directly to avoid .env file encoding issues
-os.environ['VAPI_API_KEY'] = 'a021cf71-05a0-43a0-a5cb-9f34ec24974c'
-os.environ['GEMINI_API_KEY'] = 'AIzaSyAWBueMJ-xHJT0rdnOkB_0shALr6tcyxu4'
+# Load environment variables from .env file
+load_dotenv()
 
-class VapiVoiceManager:
-    """Manages Vapi voice interactions and TTS."""
+class GoogleCloudTTSManager:
+    """Manages Google Cloud Text-to-Speech."""
     
     def __init__(self):
-        self.api_key = os.getenv('VAPI_API_KEY')
-        self.base_url = "https://api.vapi.ai"
-        self.voice_enabled = bool(self.api_key)
+        # Get API key from environment variable
+        self.api_key = os.getenv('GOOGLE_CLOUD_TTS_API_KEY')
+        
+        if not self.api_key:
+            print("⚠️  GOOGLE_CLOUD_TTS_API_KEY not found in environment variables")
+            print("📝 Please add GOOGLE_CLOUD_TTS_API_KEY to your .env file")
+        else:
+            print("✅ Google Cloud TTS API key available")
+        
+        # Check for service account credentials
+        self.credentials_file = "google-credentials.json"
+        if os.path.exists(self.credentials_file):
+            print(f"✅ Google Cloud credentials found: {self.credentials_file}")
+        else:
+            print(f"⚠️  Google Cloud credentials not found: {self.credentials_file}")
+            print("📝 Please download your service account key from Google Cloud Console")
+            print("   and save it as 'google-credentials.json' in the project root")
     
-    async def text_to_speech(self, text: str, voice: str = "alloy") -> Optional[str]:
-        """Convert text to speech using Vapi TTS."""
-        try:
-            if not self.voice_enabled:
-                print("⚠️  VAPI_API_KEY not set, skipping TTS")
-                return None
-            
-            # Use Vapi's correct TTS endpoint
-            url = f"{self.base_url}/assistant/tts"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "text": text,
-                "voice": voice,
-                "model": "tts-1"
-            }
-            
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            
-            if response.status_code == 200:
-                # Save audio file and return URL
-                audio_id = str(uuid.uuid4())
-                audio_filename = f"static/audio/{audio_id}.mp3"
-                os.makedirs("static/audio", exist_ok=True)
-                
-                with open(audio_filename, "wb") as f:
-                    f.write(response.content)
-                
-                audio_url = f"/static/audio/{audio_id}.mp3"
-                print(f"🎵 Generated TTS audio: {audio_url}")
-                return audio_url
-            else:
-                print(f"❌ TTS failed: {response.status_code} - {response.text}")
-                # Try alternative endpoint if first one fails
-                return await self._try_alternative_tts(text, voice)
-                
-        except Exception as e:
-            print(f"❌ TTS error: {e}")
-            return await self._try_alternative_tts(text, voice)
+    def is_voice_enabled(self) -> bool:
+        """Check if voice functionality is enabled."""
+        return bool(self.api_key)
     
-    async def _try_alternative_tts(self, text: str, voice: str = "alloy") -> Optional[str]:
-        """Try alternative TTS endpoints if the main one fails."""
+    async def generate_tts(self, text: str, voice_name: str = "en-US-Standard-A") -> Optional[str]:
+        """Generate TTS audio from text."""
+        if not self.is_voice_enabled():
+            print("🔇 Voice disabled - no Google Cloud credentials")
+            return None
+            
         try:
-            # Try OpenAI-compatible endpoint
-            url = "https://api.openai.com/v1/audio/speech"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
+            # Try using Google Cloud TTS with service account
+            from google.cloud import texttospeech
             
-            payload = {
-                "model": "tts-1",
-                "input": text,
-                "voice": voice,
-                "response_format": "mp3"
-            }
+            # Set up credentials
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.credentials_file
             
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            # Initialize TTS client
+            client = texttospeech.TextToSpeechClient()
             
-            if response.status_code == 200:
-                # Save audio file and return URL
-                audio_id = str(uuid.uuid4())
-                audio_filename = f"static/audio/{audio_id}.mp3"
-                os.makedirs("static/audio", exist_ok=True)
-                
-                with open(audio_filename, "wb") as f:
-                    f.write(response.content)
-                
-                audio_url = f"/static/audio/{audio_id}.mp3"
-                print(f"🎵 Generated TTS audio (alternative): {audio_url}")
-                return audio_url
-            else:
-                print(f"❌ Alternative TTS also failed: {response.status_code} - {response.text}")
-                return None
-                
+            # Configure the request
+            synthesis_input = texttospeech.SynthesisInput(text=text)
+            
+            voice = texttospeech.VoiceSelectionParams(
+                language_code="en-US",
+                name=voice_name,
+                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+            )
+            
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.MP3
+            )
+            
+            # Perform TTS
+            response = client.synthesize_speech(
+                input=synthesis_input, voice=voice, audio_config=audio_config
+            )
+            
+            # Save audio file
+            audio_filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+            audio_path = f"static/audio/{audio_filename}"
+            
+            # Ensure directory exists
+            os.makedirs("static/audio", exist_ok=True)
+            
+            with open(audio_path, "wb") as out:
+                out.write(response.audio_content)
+            
+            print(f"🎵 TTS generated: {audio_filename}")
+            return f"/static/audio/{audio_filename}"
+            
         except Exception as e:
-            print(f"❌ Alternative TTS error: {e}")
+            print(f"❌ TTS generation failed: {e}")
+            return None
+    
+    async def generate_tts_fallback(self, text: str) -> Optional[str]:
+        """Fallback TTS using Google's TTS API with API key."""
+        try:
+            # Use Google Cloud TTS API with API key as query parameter
+            print("🔄 Using Google Cloud TTS API fallback...")
+            
+            url = "https://texttospeech.googleapis.com/v1/text:synthesize"
+            
+            # API key as query parameter (not Bearer token)
+            params = {
+                "key": self.api_key
+            }
+            
+            # Request body according to Google Cloud TTS API schema
+            data = {
+                "input": {
+                    "text": text
+                },
+                "voice": {
+                    "languageCode": "en-US",
+                    "name": "en-US-Standard-A"
+                },
+                "audioConfig": {
+                    "audioEncoding": "MP3",
+                    "speakingRate": 1.0,
+                    "pitch": 0.0
+                }
+            }
+            
+            print("📡 Making TTS API request to Google Cloud...")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, params=params, json=data) as response:
+                    print(f"📊 TTS API Response Status: {response.status}")
+                    print(f"📊 TTS API Response Headers: {dict(response.headers)}")
+                    
+                    if response.status == 200:
+                        response_data = await response.json()
+                        
+                        if "audioContent" in response_data:
+                            # Decode base64 audio content
+                            audio_content = base64.b64decode(response_data["audioContent"])
+                            
+                            # Save audio file
+                            filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+                            audio_path = os.path.join("static", "audio", filename)
+                            
+                            # Ensure directory exists
+                            os.makedirs(os.path.dirname(audio_path), exist_ok=True)
+                            
+                            with open(audio_path, "wb") as f:
+                                f.write(audio_content)
+                            
+                            print(f"🎵 TTS generated successfully: {filename}")
+                            return f"/static/audio/{filename}"
+                        else:
+                            print("❌ TTS API response missing audioContent")
+                            return None
+                    else:
+                        print(f"❌ TTS API failed with status {response.status}")
+                        error_text = await response.text()
+                        print(f"❌ Error response: {error_text}")
+                        return None
+                        
+        except Exception as e:
+            print(f"❌ TTS fallback failed: {str(e)}")
             return None
     
     async def process_voice_query(self, session_id: str, query: str, image_analyzer_func) -> Dict[str, Any]:
@@ -117,7 +174,7 @@ class VapiVoiceManager:
             response_text = f"I received your voice query: '{query}' for session {session_id}. Image analysis will be integrated."
             
             # Generate audio response
-            audio_url = await self.text_to_speech(response_text)
+            audio_url = await self.generate_tts(response_text)
             
             return {
                 "response": response_text,
@@ -134,10 +191,6 @@ class VapiVoiceManager:
                 "session_id": session_id,
                 "image_id": None
             }
-    
-    def is_voice_enabled(self) -> bool:
-        """Check if voice features are enabled."""
-        return self.voice_enabled
 
-# Global voice manager instance
-voice_manager = VapiVoiceManager() 
+# Initialize voice manager
+voice_manager = GoogleCloudTTSManager() 

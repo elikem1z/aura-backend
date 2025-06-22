@@ -30,6 +30,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import our custom modules
 from voice_manager import voice_manager
@@ -84,13 +88,12 @@ class SessionInfo(BaseModel):
 # Global storage (in production, use Redis/database)
 image_storage = {}
 
-# Set API keys directly to avoid .env file encoding issues
-os.environ['VAPI_API_KEY'] = 'a021cf71-05a0-43a0-a5cb-9f34ec24974c'
-os.environ['GEMINI_API_KEY'] = 'AIzaSyAWBueMJ-xHJT0rdnOkB_0shALr6tcyxu4'
-
-# API Keys
+# API Keys from environment variables
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 VAPI_API_KEY = os.getenv('VAPI_API_KEY')
+
+if not GEMINI_API_KEY:
+    raise Exception("GEMINI_API_KEY not found in environment variables or .env file")
 
 async def analyze_image_with_gemini(image_data: bytes, query: str) -> str:
     """
@@ -167,6 +170,55 @@ async def analyze_image_with_gemini(image_data: bytes, query: str) -> str:
         print(f"❌ Error analyzing image with Gemini: {e}")
         return f"I can see you're asking about your surroundings. There was a temporary issue with the image analysis service. Your query was: '{query}'. Please try again in a moment."
 
+async def process_query_with_gemini(query: str, image_id: Optional[str] = None) -> str:
+    """
+    Process a voice query with Gemini AI.
+    If image_id is provided, analyze that specific image.
+    Otherwise, provide a general response.
+    """
+    try:
+        if image_id and image_id in image_storage:
+            # Analyze specific image
+            image_info = image_storage[image_id]
+            return await analyze_image_with_gemini(image_info["data"], query)
+        else:
+            # General response without image
+            return f"I understand you're asking: '{query}'. To help you with image analysis, please upload an image first and then ask your question."
+            
+    except Exception as e:
+        print(f"❌ Error processing query with Gemini: {e}")
+        return f"I'm sorry, I encountered an error processing your query: '{query}'. Please try again."
+
+async def process_voice_query(request: VoiceQueryRequest) -> VoiceQueryResponse:
+    """
+    Process a voice query request and return response with TTS.
+    """
+    try:
+        print(f"🎤 Processing voice query: {request.query}")
+        
+        # Get response from Gemini
+        response_text = await process_query_with_gemini(request.query, request.image_id)
+        
+        # Try to generate TTS audio
+        audio_url = None
+        if voice_manager.is_voice_enabled():
+            audio_url = await voice_manager.generate_tts(response_text)
+            
+        # If main TTS fails, try fallback
+        if not audio_url:
+            print("🔄 Trying fallback TTS...")
+            audio_url = await voice_manager.generate_tts_fallback(response_text)
+        
+        return VoiceQueryResponse(
+            response=response_text,
+            audio_url=audio_url,
+            session_id=request.session_id
+        )
+        
+    except Exception as e:
+        print(f"❌ Error processing voice query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/ping")
 def ping():
     """Health check endpoint."""
@@ -177,30 +229,23 @@ def ping():
     })
 
 @app.post("/voice/query", response_model=VoiceQueryResponse)
-async def process_voice_query(request: VoiceQueryRequest):
-    """
-    Process a voice query about an image.
-    This is the main endpoint for voice interactions.
-    """
+async def voice_query(request: VoiceQueryRequest):
+    """Process voice query and return response with TTS."""
     try:
-        # Update session activity
-        session_manager.update_session_activity(request.session_id)
+        print(f"🎤 Processing voice query: {request.query}")
         
-        # Get current image for session
-        current_image = session_manager.get_current_image(request.session_id)
+        # Get response from Gemini
+        response_text = await process_query_with_gemini(request.query, request.image_id)
         
-        if not current_image:
-            response_text = "I don't see any image in your current session. Please upload an image first, then ask me about it."
-        else:
-            # Analyze image with the voice query
-            image_data = image_storage.get(current_image, {}).get("data")
-            if image_data:
-                response_text = await analyze_image_with_gemini(image_data, request.query)
-            else:
-                response_text = "I'm sorry, I couldn't find the image you're referring to. Please upload a new image."
-        
-        # Generate audio response
-        audio_url = await voice_manager.text_to_speech(response_text)
+        # Try to generate TTS audio
+        audio_url = None
+        if voice_manager.is_voice_enabled():
+            audio_url = await voice_manager.generate_tts(response_text)
+            
+        # If main TTS fails, try fallback
+        if not audio_url:
+            print("🔄 Trying fallback TTS...")
+            audio_url = await voice_manager.generate_tts_fallback(response_text)
         
         return VoiceQueryResponse(
             response=response_text,
@@ -319,19 +364,31 @@ async def upload_image(
     Enhanced to work with voice sessions.
     """
     try:
+        print(f"📤 UPLOAD REQUEST RECEIVED:")
+        print(f"   - Filename: {image.filename}")
+        print(f"   - Content-Type: {image.content_type}")
+        print(f"   - User ID: {user_id}")
+        print(f"   - Session ID: {session_id}")
+        
         # Validate file type
         if not image.content_type.startswith('image/'):
+            print(f"❌ Invalid file type: {image.content_type}")
             raise HTTPException(status_code=400, detail="File must be an image")
         
         # Generate unique image ID
         image_id = str(uuid.uuid4())
+        print(f"   - Generated Image ID: {image_id}")
         
         # Read image data
         image_data = await image.read()
+        print(f"   - Image size: {len(image_data)} bytes")
         
         # Create session if not provided
         if not session_id:
             session_id = session_manager.create_session(user_id, voice_enabled=True)
+            print(f"   - Created new session: {session_id}")
+        else:
+            print(f"   - Using existing session: {session_id}")
         
         # Store image data
         image_storage[image_id] = {
@@ -347,7 +404,10 @@ async def upload_image(
         # Add image to session
         session_manager.add_image_to_session(session_id, image_id)
         
-        print(f"📸 Image uploaded: {image_id} ({len(image_data)} bytes) from user {user_id} in session {session_id}")
+        print(f"✅ IMAGE UPLOAD SUCCESSFUL:")
+        print(f"   - Image ID: {image_id}")
+        print(f"   - Session ID: {session_id}")
+        print(f"   - Total images in storage: {len(image_storage)}")
         
         return ImageUploadResponse(
             image_id=image_id,
@@ -356,7 +416,10 @@ async def upload_image(
         )
         
     except Exception as e:
-        print(f"❌ Error uploading image: {e}")
+        print(f"❌ UPLOAD ERROR: {e}")
+        print(f"   - Error type: {type(e).__name__}")
+        import traceback
+        print(f"   - Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze-image", response_model=AnalyzeImageResponse)
@@ -366,10 +429,24 @@ async def analyze_image(request: AnalyzeImageRequest):
     Enhanced to support voice output.
     """
     try:
+        print(f"🔍 ANALYZE REQUEST RECEIVED:")
+        print(f"   - Image ID: {request.image_id}")
+        print(f"   - Query: {request.query}")
+        print(f"   - Session ID: {request.session_id}")
+        print(f"   - Total images in storage: {len(image_storage)}")
+        print(f"   - Available image IDs: {list(image_storage.keys())}")
+        
         # Get image data
         image_info = image_storage.get(request.image_id)
         if not image_info:
+            print(f"❌ IMAGE NOT FOUND: {request.image_id}")
+            print(f"   - Available images: {list(image_storage.keys())}")
             raise HTTPException(status_code=404, detail="Image not found")
+        
+        print(f"✅ IMAGE FOUND:")
+        print(f"   - Filename: {image_info['filename']}")
+        print(f"   - Size: {image_info['size']} bytes")
+        print(f"   - Session: {image_info['session_id']}")
         
         # Update session activity if provided
         if request.session_id:
@@ -383,7 +460,17 @@ async def analyze_image(request: AnalyzeImageRequest):
         if request.session_id:
             session = session_manager.get_session(request.session_id)
             if session and session.get("voice_enabled"):
-                audio_url = await voice_manager.text_to_speech(description)
+                print("🎤 Generating TTS audio...")
+                audio_url = await voice_manager.generate_tts(description)
+                
+                # If main TTS fails, try fallback
+                if not audio_url:
+                    print("🔄 Main TTS failed, trying fallback...")
+                    audio_url = await voice_manager.generate_tts_fallback(description)
+        
+        print(f"✅ ANALYSIS COMPLETE:")
+        print(f"   - Description length: {len(description)} characters")
+        print(f"   - Audio URL: {audio_url}")
         
         return AnalyzeImageResponse(
             description=description,
@@ -392,7 +479,10 @@ async def analyze_image(request: AnalyzeImageRequest):
         )
         
     except Exception as e:
-        print(f"❌ Error analyzing image: {e}")
+        print(f"❌ ANALYZE ERROR: {e}")
+        print(f"   - Error type: {type(e).__name__}")
+        import traceback
+        print(f"   - Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/image/{image_id}")
