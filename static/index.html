@@ -29,14 +29,6 @@
             font-size: 2.5em;
         }
         
-        .voice-section {
-            background: #e3f2fd;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #2196f3;
-        }
-        
         .upload-section {
             background: #f3e5f5;
             padding: 20px;
@@ -182,45 +174,34 @@
     <div class="container">
         <h1>🎤 Aura Voice-First Vision Assistant</h1>
         <p style="text-align: center; color: #718096; margin-bottom: 30px;">
-            Upload images and ask questions via voice or text with AI-powered analysis
+            Upload images and ask questions via voice or text with AI-powered analysis and voice responses
         </p>
-        
-        <!-- Voice Session Section -->
-        <div class="voice-section">
-            <h2>🎙️ Voice Session</h2>
-            <p>Create a voice session to enable voice interactions and text-to-speech responses.</p>
-            <input type="text" id="userId" placeholder="User ID (optional - will auto-generate if empty)">
-            <button class="voice-btn" onclick="createVoiceSession()">🎤 Create Voice Session</button>
-            <div id="voiceStatus"></div>
-            <div id="sessionInfo" class="hidden"></div>
-        </div>
         
         <!-- Upload Section -->
         <div class="upload-section">
             <h2>📸 Upload Image</h2>
             <div class="upload-area" id="uploadArea">
-            <h3>📸 Upload Image</h3>
-            <p>Drag and drop an image here, or click to select</p>
-            <input type="file" id="fileInput" accept="image/*">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                Choose Image
-            </button>
-        </div>
-        
-        <!-- Image Preview -->
-        <div class="preview-section hidden" id="previewSection">
-            <h3>🖼️ Image Preview</h3>
-            <img id="imagePreview" alt="Preview">
-        </div>
-        
+                <h3>📸 Upload Image</h3>
+                <p>Drag and drop an image here, or click to select</p>
+                <input type="file" id="fileInput" accept="image/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Image
+                </button>
+            </div>
+            
+            <!-- Image Preview -->
+            <div class="preview-section hidden" id="previewSection">
+                <h3>🖼️ Image Preview</h3>
+                <img id="imagePreview" alt="Preview">
+            </div>
+            
             <div id="uploadStatus"></div>
         </div>
         
         <!-- Query Section -->
         <div class="query-section">
             <h2>🔍 Ask Questions</h2>
-            <input type="text" id="imageId" placeholder="Image ID (auto-filled after upload)">
-            <input type="text" id="sessionIdQuery" placeholder="Session ID (auto-filled from voice session)">
+            <input type="text" id="imageId" placeholder="Image ID (auto-filled after upload)" readonly>
             <textarea id="query" placeholder="Ask about the image..." rows="3">What do you see in this image? Please describe it in detail for someone who is visually impaired.</textarea>
             <button class="voice-btn" id="recordBtn" onclick="toggleRecording()">🎤 Record Voice Query</button>
             <span id="recordingStatus" style="margin-left:10px;color:#1976d2;font-weight:bold;"></span>
@@ -236,6 +217,11 @@
         let recognizing = false;
         let recognition;
         let lastAudio;
+        
+        // Auto-create voice session on page load
+        window.addEventListener('load', async () => {
+            await createVoiceSession();
+        });
         
         // File input handling
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
@@ -287,7 +273,7 @@
         }
         
         async function createVoiceSession() {
-            const userId = document.getElementById('userId').value || 'web_user_' + Date.now();
+            const userId = 'web_user_' + Date.now();
             
             try {
                 const formData = new FormData();
@@ -304,29 +290,15 @@
                 
                 const data = await response.json();
                 currentSessionId = data.session_id;
-                
-                document.getElementById('voiceStatus').innerHTML = 
-                    `<div class="status success">✅ Voice session created successfully!</div>`;
-                
-                document.getElementById('sessionInfo').innerHTML = 
-                    `<div class="session-info">
-                        <strong>Session ID:</strong> ${data.session_id}<br>
-                        <strong>User ID:</strong> ${data.user_id}<br>
-                        <strong>Voice Enabled:</strong> ${data.voice_enabled ? 'Yes' : 'No'}
-                    </div>`;
-                document.getElementById('sessionInfo').classList.remove('hidden');
-                
-                // Auto-fill session ID in query section
-                document.getElementById('sessionIdQuery').value = data.session_id;
+                console.log('Voice session created:', data.session_id);
                 
             } catch (error) {
-                document.getElementById('voiceStatus').innerHTML = 
-                    `<div class="status error">❌ Error: ${error.message}</div>`;
+                console.error('Voice session creation error:', error);
             }
         }
         
         async function uploadImage(file) {
-            const userId = document.getElementById('userId').value || 'web_user_' + Date.now();
+            const userId = 'web_user_' + Date.now();
             const sessionId = currentSessionId || 'web_session_' + Date.now();
             
             const formData = new FormData();
@@ -349,10 +321,6 @@
                 
                 // Auto-fill image ID in query section
                 document.getElementById('imageId').value = result.image_id;
-                if (result.session_id) {
-                    document.getElementById('sessionIdQuery').value = result.session_id;
-                    currentSessionId = result.session_id;
-                }
                 
                 showSuccess(`✅ Image uploaded successfully! ID: ${result.image_id}`, 'uploadStatus');
                 
@@ -402,11 +370,10 @@
         
         async function analyzeImage() {
             const imageId = document.getElementById('imageId').value.trim();
-            const sessionId = document.getElementById('sessionIdQuery').value.trim();
             const query = document.getElementById('query').value.trim();
             
             if (!imageId) {
-                showError('❌ Please enter an Image ID or upload an image first.', 'analysisStatus');
+                showError('❌ Please upload an image first.', 'analysisStatus');
                 return;
             }
             
@@ -430,8 +397,8 @@
                     query: query
                 };
                 
-                if (sessionId) {
-                    requestBody.session_id = sessionId;
+                if (currentSessionId) {
+                    requestBody.session_id = currentSessionId;
                 }
                 
                 const response = await fetch(`${API_BASE}/analyze-image`, {

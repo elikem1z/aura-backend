@@ -34,18 +34,16 @@ class VapiVoiceManager:
                 print("⚠️  VAPI_API_KEY not set, skipping TTS")
                 return None
             
-            # Vapi TTS endpoint
-            url = f"{self.base_url}/audio/speech"
+            # Use Vapi's TTS endpoint
+            url = f"{self.base_url}/assistant/tts"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
             
             payload = {
-                "model": "tts-1",
-                "input": text,
-                "voice": voice,
-                "response_format": "mp3"
+                "text": text,
+                "voice": voice
             }
             
             response = requests.post(url, headers=headers, json=payload, timeout=30)
