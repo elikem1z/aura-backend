@@ -95,6 +95,9 @@ class SessionInfo(BaseModel):
     images: List[str]
     voice_enabled: bool
 
+class CreateSessionRequest(BaseModel):
+    user_id: str
+
 # Global storage (in production, use Redis/database)
 image_storage = {}
 
@@ -268,10 +271,10 @@ async def voice_query(request: VoiceQueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/voice/session/create")
-async def create_voice_session(user_id: str = Form(...)):
+async def create_voice_session(request: CreateSessionRequest):
     """Create a new voice-enabled session."""
     try:
-        session_id = session_manager.create_session(user_id, voice_enabled=True)
+        session_id = session_manager.create_session(request.user_id, voice_enabled=True)
         return JSONResponse(content={
             "session_id": session_id,
             "message": "Voice session created successfully",
@@ -284,15 +287,10 @@ async def create_voice_session(user_id: str = Form(...)):
 @app.get("/voice/session/{session_id}")
 async def get_voice_session(session_id: str):
     """Get voice session information."""
-    try:
-        session_info = session_manager.get_session_info(session_id)
-        if not session_info:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        return JSONResponse(content=session_info)
-    except Exception as e:
-        print(f"❌ Error getting voice session: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    session_info = session_manager.get_session_info(session_id)
+    if not session_info:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return JSONResponse(content=session_info)
 
 @app.post("/webhook/vapi", response_model=VapiWebhookResponse)
 async def vapi_webhook(request: VapiWebhookRequest):
@@ -498,24 +496,18 @@ async def analyze_image(request: AnalyzeImageRequest):
 @app.get("/image/{image_id}")
 async def get_image(image_id: str):
     """Get image information."""
-    try:
-        image_info = image_storage.get(image_id)
-        if not image_info:
-            raise HTTPException(status_code=404, detail="Image not found")
-        
-        return JSONResponse(content={
-            "image_id": image_id,
-            "filename": image_info["filename"],
-            "content_type": image_info["content_type"],
-            "size": image_info["size"],
-            "user_id": image_info["user_id"],
-            "session_id": image_info["session_id"],
-            "uploaded_at": image_info["uploaded_at"].isoformat()
-        })
-        
-    except Exception as e:
-        print(f"❌ Error getting image info: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    image_info = image_storage.get(image_id)
+    if not image_info:
+        raise HTTPException(status_code=404, detail="Image not found")
+    return JSONResponse(content={
+        "image_id": image_id,
+        "filename": image_info["filename"],
+        "content_type": image_info["content_type"],
+        "size": image_info["size"],
+        "user_id": image_info["user_id"],
+        "session_id": image_info["session_id"],
+        "uploaded_at": image_info["uploaded_at"].isoformat()
+    })
 
 @app.get("/", response_class=HTMLResponse)
 async def web_interface():
@@ -580,7 +572,7 @@ async def web_interface():
                     try {
                         const response = await fetch('/voice/session/create', {
                             method: 'POST',
-                            body: new FormData([['user_id', userId]])
+                            body: JSON.stringify({user_id: userId})
                         });
                         const data = await response.json();
                         document.getElementById('voiceStatus').innerHTML = 
