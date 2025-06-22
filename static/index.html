@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aura Vision Assistant - Test Interface</title>
+    <title>🎤 Aura Voice-First Vision Assistant</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -29,21 +29,45 @@
             font-size: 2.5em;
         }
         
+        .voice-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
         .upload-section {
+            background: #f3e5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #9c27b0;
+        }
+        
+        .query-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .upload-area {
             border: 2px dashed #cbd5e0;
             border-radius: 10px;
             padding: 40px;
             text-align: center;
-            margin-bottom: 30px;
+            margin: 20px 0;
             transition: all 0.3s ease;
         }
         
-        .upload-section:hover {
+        .upload-area:hover {
             border-color: #667eea;
             background-color: #f7fafc;
         }
         
-        .upload-section.dragover {
+        .upload-area.dragover {
             border-color: #667eea;
             background-color: #edf2f7;
         }
@@ -52,19 +76,76 @@
             display: none;
         }
         
-        .upload-btn {
+        button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 15px 30px;
+            padding: 12px 24px;
             border: none;
             border-radius: 25px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
             transition: transform 0.2s ease;
+            margin: 5px;
         }
         
-        .upload-btn:hover {
+        button:hover {
             transform: translateY(-2px);
+        }
+        
+        .voice-btn {
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .status {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .hidden {
+            display: none;
         }
         
         .preview-section {
@@ -79,95 +160,45 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
-        .query-section {
-            margin: 20px 0;
-        }
-        
-        .query-input {
-            width: 100%;
+        .audio-player {
+            margin: 15px 0;
             padding: 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
         }
         
-        .query-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .analyze-btn {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            width: 100%;
-        }
-        
-        .analyze-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .analyze-btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .result-section {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f7fafc;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .result-section h3 {
-            color: #4a5568;
-            margin-top: 0;
-        }
-        
-        .loading {
-            text-align: center;
-            color: #667eea;
-            font-style: italic;
-        }
-        
-        .error {
-            background: #fed7d7;
-            color: #c53030;
-            padding: 15px;
+        .session-info {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
             border-radius: 8px;
             margin: 10px 0;
-        }
-        
-        .success {
-            background: #c6f6d5;
-            color: #2f855a;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
-        .hidden {
-            display: none;
+            border-left: 4px solid #ffc107;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔮 Aura Vision Assistant</h1>
+        <h1>🎤 Aura Voice-First Vision Assistant</h1>
         <p style="text-align: center; color: #718096; margin-bottom: 30px;">
-            Upload an image and get an AI-powered description of what's in it
+            Upload images and ask questions via voice or text with AI-powered analysis
         </p>
         
+        <!-- Voice Session Section -->
+        <div class="voice-section">
+            <h2>🎙️ Voice Session</h2>
+            <p>Create a voice session to enable voice interactions and text-to-speech responses.</p>
+            <input type="text" id="userId" placeholder="User ID (optional - will auto-generate if empty)">
+            <button class="voice-btn" onclick="createVoiceSession()">🎤 Create Voice Session</button>
+            <div id="voiceStatus"></div>
+            <div id="sessionInfo" class="hidden"></div>
+        </div>
+        
         <!-- Upload Section -->
-        <div class="upload-section" id="uploadSection">
+        <div class="upload-section">
+            <h2>📸 Upload Image</h2>
+            <div class="upload-area" id="uploadArea">
             <h3>📸 Upload Image</h3>
             <p>Drag and drop an image here, or click to select</p>
             <input type="file" id="fileInput" accept="image/*">
@@ -182,48 +213,48 @@
             <img id="imagePreview" alt="Preview">
         </div>
         
-        <!-- Query Section -->
-        <div class="query-section hidden" id="querySection">
-            <h3>❓ What would you like to know?</h3>
-            <input type="text" 
-                   class="query-input" 
-                   id="queryInput" 
-                   placeholder="e.g., What do you see in this image? Describe it in detail."
-                   value="What do you see in this image? Please describe it in detail for someone who is visually impaired.">
-            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
-                🔍 Analyze with AI
-            </button>
+            <div id="uploadStatus"></div>
         </div>
         
-        <!-- Results Section -->
-        <div class="result-section hidden" id="resultSection">
-            <h3>🤖 AI Analysis Result</h3>
-            <div id="resultContent"></div>
+        <!-- Query Section -->
+        <div class="query-section">
+            <h2>🔍 Ask Questions</h2>
+            <input type="text" id="imageId" placeholder="Image ID (auto-filled after upload)">
+            <input type="text" id="sessionIdQuery" placeholder="Session ID (auto-filled from voice session)">
+            <textarea id="query" placeholder="Ask about the image..." rows="3">What do you see in this image? Please describe it in detail for someone who is visually impaired.</textarea>
+            <button class="voice-btn" id="recordBtn" onclick="toggleRecording()">🎤 Record Voice Query</button>
+            <span id="recordingStatus" style="margin-left:10px;color:#1976d2;font-weight:bold;"></span>
+            <button class="analyze-btn" onclick="analyzeImage()">🔍 Analyze Image</button>
+            <div id="analysisStatus"></div>
         </div>
     </div>
 
     <script>
         const API_BASE = 'http://127.0.0.1:8000';
         let currentImageId = null;
+        let currentSessionId = null;
+        let recognizing = false;
+        let recognition;
+        let lastAudio;
         
         // File input handling
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         
         // Drag and drop handling
-        const uploadSection = document.getElementById('uploadSection');
+        const uploadArea = document.getElementById('uploadArea');
         
-        uploadSection.addEventListener('dragover', (e) => {
+        uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadSection.classList.add('dragover');
+            uploadArea.classList.add('dragover');
         });
         
-        uploadSection.addEventListener('dragleave', () => {
-            uploadSection.classList.remove('dragover');
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
         });
         
-        uploadSection.addEventListener('drop', (e) => {
+        uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadSection.classList.remove('dragover');
+            uploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 handleFile(files[0]);
@@ -239,7 +270,7 @@
         
         function handleFile(file) {
             if (!file.type.startsWith('image/')) {
-                showError('Please select an image file.');
+                showError('Please select an image file.', 'uploadStatus');
                 return;
             }
             
@@ -248,8 +279,6 @@
             reader.onload = function(e) {
                 document.getElementById('imagePreview').src = e.target.result;
                 document.getElementById('previewSection').classList.remove('hidden');
-                document.getElementById('querySection').classList.remove('hidden');
-                document.getElementById('resultSection').classList.add('hidden');
             };
             reader.readAsDataURL(file);
             
@@ -257,11 +286,53 @@
             uploadImage(file);
         }
         
+        async function createVoiceSession() {
+            const userId = document.getElementById('userId').value || 'web_user_' + Date.now();
+            
+            try {
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                
+                const response = await fetch(`${API_BASE}/voice/session/create`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Voice session creation failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                currentSessionId = data.session_id;
+                
+                document.getElementById('voiceStatus').innerHTML = 
+                    `<div class="status success">✅ Voice session created successfully!</div>`;
+                
+                document.getElementById('sessionInfo').innerHTML = 
+                    `<div class="session-info">
+                        <strong>Session ID:</strong> ${data.session_id}<br>
+                        <strong>User ID:</strong> ${data.user_id}<br>
+                        <strong>Voice Enabled:</strong> ${data.voice_enabled ? 'Yes' : 'No'}
+                    </div>`;
+                document.getElementById('sessionInfo').classList.remove('hidden');
+                
+                // Auto-fill session ID in query section
+                document.getElementById('sessionIdQuery').value = data.session_id;
+                
+            } catch (error) {
+                document.getElementById('voiceStatus').innerHTML = 
+                    `<div class="status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
         async function uploadImage(file) {
+            const userId = document.getElementById('userId').value || 'web_user_' + Date.now();
+            const sessionId = currentSessionId || 'web_session_' + Date.now();
+            
             const formData = new FormData();
             formData.append('image', file);
-            formData.append('user_id', 'web_user_' + Date.now());
-            formData.append('session_id', 'web_session_' + Date.now());
+            formData.append('user_id', userId);
+            formData.append('session_id', sessionId);
             
             try {
                 const response = await fetch(`${API_BASE}/upload-image`, {
@@ -276,46 +347,99 @@
                 const result = await response.json();
                 currentImageId = result.image_id;
                 
-                showSuccess(`Image uploaded successfully! ID: ${result.image_id}`);
+                // Auto-fill image ID in query section
+                document.getElementById('imageId').value = result.image_id;
+                if (result.session_id) {
+                    document.getElementById('sessionIdQuery').value = result.session_id;
+                    currentSessionId = result.session_id;
+                }
+                
+                showSuccess(`✅ Image uploaded successfully! ID: ${result.image_id}`, 'uploadStatus');
                 
             } catch (error) {
-                showError(`Upload failed: ${error.message}`);
+                showError(`❌ Upload failed: ${error.message}`, 'uploadStatus');
+            }
+        }
+        
+        // --- Voice Recording Logic ---
+        function toggleRecording() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('Sorry, your browser does not support speech recognition.');
+                return;
+            }
+            if (!recognition) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+                recognition.onstart = function() {
+                    recognizing = true;
+                    document.getElementById('recordingStatus').textContent = 'Recording...';
+                    document.getElementById('recordBtn').textContent = '⏹️ Stop Recording';
+                };
+                recognition.onend = function() {
+                    recognizing = false;
+                    document.getElementById('recordingStatus').textContent = '';
+                    document.getElementById('recordBtn').textContent = '🎤 Record Voice Query';
+                };
+                recognition.onerror = function(event) {
+                    recognizing = false;
+                    document.getElementById('recordingStatus').textContent = 'Error: ' + event.error;
+                    document.getElementById('recordBtn').textContent = '🎤 Record Voice Query';
+                };
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('query').value = transcript;
+                };
+            }
+            if (recognizing) {
+                recognition.stop();
+            } else {
+                recognition.start();
             }
         }
         
         async function analyzeImage() {
-            if (!currentImageId) {
-                showError('No image uploaded. Please upload an image first.');
+            const imageId = document.getElementById('imageId').value.trim();
+            const sessionId = document.getElementById('sessionIdQuery').value.trim();
+            const query = document.getElementById('query').value.trim();
+            
+            if (!imageId) {
+                showError('❌ Please enter an Image ID or upload an image first.', 'analysisStatus');
                 return;
             }
             
-            const query = document.getElementById('queryInput').value.trim();
             if (!query) {
-                showError('Please enter a query.');
+                showError('❌ Please enter a query.', 'analysisStatus');
                 return;
             }
             
             // Show loading state
-            const analyzeBtn = document.getElementById('analyzeBtn');
+            const analyzeBtn = document.querySelector('.analyze-btn');
             const originalText = analyzeBtn.textContent;
             analyzeBtn.disabled = true;
             analyzeBtn.textContent = '🔍 Analyzing...';
             
-            const resultSection = document.getElementById('resultSection');
-            const resultContent = document.getElementById('resultContent');
-            resultSection.classList.remove('hidden');
-            resultContent.innerHTML = '<div class="loading">Analyzing image with AI... This may take a few seconds.</div>';
+            const analysisStatus = document.getElementById('analysisStatus');
+            analysisStatus.innerHTML = '<div class="status info">🔄 Analyzing image with AI... This may take a few seconds.</div>';
             
             try {
+                const requestBody = {
+                    image_id: imageId,
+                    query: query
+                };
+                
+                if (sessionId) {
+                    requestBody.session_id = sessionId;
+                }
+                
                 const response = await fetch(`${API_BASE}/analyze-image`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        image_id: currentImageId,
-                        query: query
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 if (!response.ok) {
@@ -325,20 +449,44 @@
                 const result = await response.json();
                 
                 // Display result
-                resultContent.innerHTML = `
-                    <div class="success">
+                let resultHtml = `
+                    <div class="status success">
                         <strong>✅ Analysis Complete!</strong><br>
                         <strong>Image ID:</strong> ${result.image_id}<br>
                         <strong>Query:</strong> "${query}"<br>
                         <strong>Response Length:</strong> ${result.description.length} characters
                     </div>
-                    <div style="margin-top: 20px; line-height: 1.6; white-space: pre-wrap;">
+                    <div style="margin-top: 20px; line-height: 1.6; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">
                         ${result.description}
                     </div>
                 `;
                 
+                // Add audio player if audio URL is provided
+                if (result.audio_url) {
+                    resultHtml += `
+                        <div class="audio-player">
+                            <h4>🎵 Audio Response</h4>
+                            <audio id="ttsAudio" controls style="width: 100%;">
+                                <source src="${result.audio_url}" type="audio/mpeg">
+                                Your browser does not support audio playback.
+                            </audio>
+                        </div>
+                    `;
+                }
+                
+                analysisStatus.innerHTML = resultHtml;
+                // Auto-play audio if present
+                setTimeout(() => {
+                    const audio = document.getElementById('ttsAudio');
+                    if (audio) {
+                        if (lastAudio && !lastAudio.paused) lastAudio.pause();
+                        audio.play();
+                        lastAudio = audio;
+                    }
+                }, 200);
+                
             } catch (error) {
-                resultContent.innerHTML = `<div class="error">Analysis failed: ${error.message}</div>`;
+                analysisStatus.innerHTML = `<div class="status error">❌ Analysis failed: ${error.message}</div>`;
             } finally {
                 // Reset button
                 analyzeBtn.disabled = false;
@@ -346,18 +494,14 @@
             }
         }
         
-        function showError(message) {
-            const resultSection = document.getElementById('resultSection');
-            const resultContent = document.getElementById('resultContent');
-            resultSection.classList.remove('hidden');
-            resultContent.innerHTML = `<div class="error">${message}</div>`;
+        function showError(message, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status error">${message}</div>`;
         }
         
-        function showSuccess(message) {
-            const resultSection = document.getElementById('resultSection');
-            const resultContent = document.getElementById('resultContent');
-            resultSection.classList.remove('hidden');
-            resultContent.innerHTML = `<div class="success">${message}</div>`;
+        function showSuccess(message, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status success">${message}</div>`;
         }
     </script>
 </body>

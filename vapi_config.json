@@ -1,0 +1,70 @@
+{
+  "name": "Aura Vision Assistant",
+  "description": "Voice-powered image analysis assistant for visually impaired users",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "temperature": 0.7,
+    "systemPrompt": "You are Aura, a helpful vision assistant designed to help visually impaired users understand their surroundings through image analysis. You can analyze images and provide detailed, helpful descriptions. Always be conversational, clear, and empathetic in your responses. When users ask about images, use the describeSurroundings function to analyze what they're looking at.",
+    "functions": [
+      {
+        "name": "describeSurroundings",
+        "description": "Analyze an image and describe what the user is looking at",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "The user's session ID for tracking their current image"
+            },
+            "query": {
+              "type": "string",
+              "description": "The user's specific question about the image"
+            }
+          },
+          "required": ["session_id", "query"]
+        }
+      },
+      {
+        "name": "uploadImage",
+        "description": "Upload a new image for analysis",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "description": "The user's session ID"
+            },
+            "image_data": {
+              "type": "string",
+              "description": "Base64 encoded image data"
+            }
+          },
+          "required": ["session_id", "image_data"]
+        }
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "alloy",
+    "speed": 1.0,
+    "stability": 0.5,
+    "similarityBoost": 0.75
+  },
+  "webhook": {
+    "url": "http://your-backend-url/webhook/vapi",
+    "method": "POST"
+  },
+  "features": {
+    "interruptions": true,
+    "conversationIntelligence": true,
+    "transcript": true,
+    "recordings": false
+  },
+  "prompt": {
+    "introduction": "Hello! I'm Aura, your vision assistant. I can help you understand what's around you by analyzing images. Just describe what you'd like to know about your surroundings, and I'll help you see the world around you.",
+    "conclusion": "Is there anything else you'd like to know about your surroundings?",
+    "followUp": "What would you like to know about this image?"
+  }
+} 

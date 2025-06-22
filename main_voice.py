@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Aura Backend - Voice-First Vision Assistant
+Aura Backend - Voice-First Vision Assistant v2.0
 
 Smart Architecture:
 1. Voice Input via Vapi - Users speak questions about images
@@ -10,13 +10,13 @@ Smart Architecture:
 5. Real-time Processing - Handle voice queries seamlessly
 
 How to run:
-$ uvicorn main:app --reload
+$ uvicorn main_voice:app --reload
 
 Visit http://127.0.0.1:8000/ping to check if the server is running.
 Visit http://127.0.0.1:8000/ to use the web interface.
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -26,9 +26,12 @@ import uuid
 import base64
 import requests
 import json
-import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
+
+# Import our custom modules
+from voice_manager import voice_manager
+from session_manager import session_manager
 
 # Load environment variables
 load_dotenv()
@@ -80,144 +83,14 @@ class SessionInfo(BaseModel):
 
 # Global storage (in production, use Redis/database)
 image_storage = {}
-session_storage = {}
-active_websockets = []
+
+# Set API keys directly to avoid .env file encoding issues
+os.environ['VAPI_API_KEY'] = 'a021cf71-05a0-43a0-a5cb-9f34ec24974c'
+os.environ['GEMINI_API_KEY'] = 'AIzaSyAWBueMJ-xHJT0rdnOkB_0shALr6tcyxu4'
 
 # API Keys
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 VAPI_API_KEY = os.getenv('VAPI_API_KEY')
-VAPI_API_URL = "https://api.vapi.ai"
-
-class SessionManager:
-    """Manages user sessions and voice interactions."""
-    
-    @staticmethod
-    def create_session(user_id: str, voice_enabled: bool = True) -> str:
-        """Create a new user session."""
-        session_id = str(uuid.uuid4())
-        session_storage[session_id] = {
-            "user_id": user_id,
-            "created_at": datetime.now(),
-            "last_activity": datetime.now(),
-            "images": [],
-            "voice_enabled": voice_enabled,
-            "current_image": None
-        }
-        print(f"📱 Created session {session_id} for user {user_id}")
-        return session_id
-    
-    @staticmethod
-    def get_session(session_id: str) -> Optional[Dict]:
-        """Get session information."""
-        return session_storage.get(session_id)
-    
-    @staticmethod
-    def update_session_activity(session_id: str):
-        """Update session last activity."""
-        if session_id in session_storage:
-            session_storage[session_id]["last_activity"] = datetime.now()
-    
-    @staticmethod
-    def add_image_to_session(session_id: str, image_id: str):
-        """Add image to session."""
-        if session_id in session_storage:
-            session_storage[session_id]["images"].append(image_id)
-            session_storage[session_id]["current_image"] = image_id
-            print(f"📸 Added image {image_id} to session {session_id}")
-    
-    @staticmethod
-    def get_current_image(session_id: str) -> Optional[str]:
-        """Get current image for session."""
-        session = session_storage.get(session_id)
-        return session.get("current_image") if session else None
-
-class VapiVoiceManager:
-    """Manages Vapi voice interactions."""
-    
-    def __init__(self):
-        self.api_key = VAPI_API_KEY
-        self.base_url = VAPI_API_URL
-    
-    async def text_to_speech(self, text: str, voice: str = "alloy") -> Optional[str]:
-        """Convert text to speech using Vapi TTS."""
-        try:
-            if not self.api_key:
-                print("⚠️  VAPI_API_KEY not set, skipping TTS")
-                return None
-            
-            # Vapi TTS endpoint
-            url = f"{self.base_url}/audio/speech"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "model": "tts-1",
-                "input": text,
-                "voice": voice,
-                "response_format": "mp3"
-            }
-            
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            
-            if response.status_code == 200:
-                # Save audio file and return URL
-                audio_id = str(uuid.uuid4())
-                audio_filename = f"static/audio/{audio_id}.mp3"
-                os.makedirs("static/audio", exist_ok=True)
-                
-                with open(audio_filename, "wb") as f:
-                    f.write(response.content)
-                
-                audio_url = f"/static/audio/{audio_id}.mp3"
-                print(f"🎵 Generated TTS audio: {audio_url}")
-                return audio_url
-            else:
-                print(f"❌ TTS failed: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            print(f"❌ TTS error: {e}")
-            return None
-    
-    async def process_voice_query(self, session_id: str, query: str) -> Dict[str, Any]:
-        """Process a voice query and return response with audio."""
-        try:
-            # Get current image for session
-            current_image = SessionManager.get_current_image(session_id)
-            
-            if not current_image:
-                response_text = "I don't see any image in your current session. Please upload an image first, then ask me about it."
-            else:
-                # Analyze image with the voice query
-                image_data = image_storage.get(current_image, {}).get("data")
-                if image_data:
-                    response_text = await analyze_image_with_gemini(image_data, query)
-                else:
-                    response_text = "I'm sorry, I couldn't find the image you're referring to. Please upload a new image."
-            
-            # Generate audio response
-            audio_url = await self.text_to_speech(response_text)
-            
-            return {
-                "response": response_text,
-                "audio_url": audio_url,
-                "session_id": session_id,
-                "image_id": current_image
-            }
-            
-        except Exception as e:
-            print(f"❌ Voice query processing error: {e}")
-            return {
-                "response": "I'm sorry, I encountered an error processing your voice query. Please try again.",
-                "audio_url": None,
-                "session_id": session_id,
-                "image_id": None
-            }
-
-# Initialize voice manager
-voice_manager = VapiVoiceManager()
 
 async def analyze_image_with_gemini(image_data: bytes, query: str) -> str:
     """
@@ -297,7 +170,11 @@ async def analyze_image_with_gemini(image_data: bytes, query: str) -> str:
 @app.get("/ping")
 def ping():
     """Health check endpoint."""
-    return JSONResponse(content={"message": "pong", "voice_enabled": bool(VAPI_API_KEY)})
+    return JSONResponse(content={
+        "message": "pong", 
+        "voice_enabled": voice_manager.is_voice_enabled(),
+        "gemini_enabled": bool(GEMINI_API_KEY)
+    })
 
 @app.post("/voice/query", response_model=VoiceQueryResponse)
 async def process_voice_query(request: VoiceQueryRequest):
@@ -307,12 +184,29 @@ async def process_voice_query(request: VoiceQueryRequest):
     """
     try:
         # Update session activity
-        SessionManager.update_session_activity(request.session_id)
+        session_manager.update_session_activity(request.session_id)
         
-        # Process the voice query
-        result = await voice_manager.process_voice_query(request.session_id, request.query)
+        # Get current image for session
+        current_image = session_manager.get_current_image(request.session_id)
         
-        return VoiceQueryResponse(**result)
+        if not current_image:
+            response_text = "I don't see any image in your current session. Please upload an image first, then ask me about it."
+        else:
+            # Analyze image with the voice query
+            image_data = image_storage.get(current_image, {}).get("data")
+            if image_data:
+                response_text = await analyze_image_with_gemini(image_data, request.query)
+            else:
+                response_text = "I'm sorry, I couldn't find the image you're referring to. Please upload a new image."
+        
+        # Generate audio response
+        audio_url = await voice_manager.text_to_speech(response_text)
+        
+        return VoiceQueryResponse(
+            response=response_text,
+            audio_url=audio_url,
+            session_id=request.session_id
+        )
         
     except Exception as e:
         print(f"❌ Error processing voice query: {e}")
@@ -322,7 +216,7 @@ async def process_voice_query(request: VoiceQueryRequest):
 async def create_voice_session(user_id: str = Form(...)):
     """Create a new voice-enabled session."""
     try:
-        session_id = SessionManager.create_session(user_id, voice_enabled=True)
+        session_id = session_manager.create_session(user_id, voice_enabled=True)
         return JSONResponse(content={
             "session_id": session_id,
             "message": "Voice session created successfully",
@@ -336,19 +230,11 @@ async def create_voice_session(user_id: str = Form(...)):
 async def get_voice_session(session_id: str):
     """Get voice session information."""
     try:
-        session = SessionManager.get_session(session_id)
-        if not session:
+        session_info = session_manager.get_session_info(session_id)
+        if not session_info:
             raise HTTPException(status_code=404, detail="Session not found")
         
-        return JSONResponse(content={
-            "session_id": session_id,
-            "user_id": session["user_id"],
-            "created_at": session["created_at"].isoformat(),
-            "last_activity": session["last_activity"].isoformat(),
-            "images": session["images"],
-            "current_image": session["current_image"],
-            "voice_enabled": session["voice_enabled"]
-        })
+        return JSONResponse(content=session_info)
     except Exception as e:
         print(f"❌ Error getting voice session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -379,8 +265,11 @@ async def vapi_webhook(request: VapiWebhookRequest):
                     result = "I need a session ID to help you with image analysis. Please start a new session first."
                 else:
                     # Process the voice query
-                    voice_result = await voice_manager.process_voice_query(session_id, query)
-                    result = voice_result["response"]
+                    voice_result = await process_voice_query(VoiceQueryRequest(
+                        session_id=session_id,
+                        query=query
+                    ))
+                    result = voice_result.response
                 
                 print(f"🎤 Voice function call handled: {function_name}")
                 return VapiWebhookResponse(result=result)
@@ -398,7 +287,7 @@ async def vapi_webhook(request: VapiWebhookRequest):
                         "session_id": session_id,
                         "uploaded_at": datetime.now()
                     }
-                    SessionManager.add_image_to_session(session_id, image_id)
+                    session_manager.add_image_to_session(session_id, image_id)
                     result = f"Image uploaded successfully. You can now ask me questions about what you see."
                 else:
                     result = "I need both a session ID and image data to upload an image."
@@ -442,7 +331,7 @@ async def upload_image(
         
         # Create session if not provided
         if not session_id:
-            session_id = SessionManager.create_session(user_id, voice_enabled=True)
+            session_id = session_manager.create_session(user_id, voice_enabled=True)
         
         # Store image data
         image_storage[image_id] = {
@@ -456,7 +345,7 @@ async def upload_image(
         }
         
         # Add image to session
-        SessionManager.add_image_to_session(session_id, image_id)
+        session_manager.add_image_to_session(session_id, image_id)
         
         print(f"📸 Image uploaded: {image_id} ({len(image_data)} bytes) from user {user_id} in session {session_id}")
         
@@ -484,7 +373,7 @@ async def analyze_image(request: AnalyzeImageRequest):
         
         # Update session activity if provided
         if request.session_id:
-            SessionManager.update_session_activity(request.session_id)
+            session_manager.update_session_activity(request.session_id)
         
         # Analyze image
         description = await analyze_image_with_gemini(image_info["data"], request.query)
@@ -492,7 +381,7 @@ async def analyze_image(request: AnalyzeImageRequest):
         # Generate audio if session is voice-enabled
         audio_url = None
         if request.session_id:
-            session = SessionManager.get_session(request.session_id)
+            session = session_manager.get_session(request.session_id)
             if session and session.get("voice_enabled"):
                 audio_url = await voice_manager.text_to_speech(description)
         
@@ -512,15 +401,15 @@ async def get_image(image_id: str):
     try:
         image_info = image_storage.get(image_id)
         if not image_info:
-        raise HTTPException(status_code=404, detail="Image not found")
-    
+            raise HTTPException(status_code=404, detail="Image not found")
+        
         return JSONResponse(content={
-        "image_id": image_id,
-        "filename": image_info["filename"],
-        "content_type": image_info["content_type"],
+            "image_id": image_id,
+            "filename": image_info["filename"],
+            "content_type": image_info["content_type"],
             "size": image_info["size"],
-        "user_id": image_info["user_id"],
-        "session_id": image_info["session_id"],
+            "user_id": image_info["user_id"],
+            "session_id": image_info["session_id"],
             "uploaded_at": image_info["uploaded_at"].isoformat()
         })
         
@@ -555,7 +444,7 @@ async def web_interface():
                 .error { background: #f8d7da; color: #721c24; }
             </style>
         </head>
-            <body>
+        <body>
             <div class="container">
                 <h1>🎤 Aura Voice-First Vision Assistant</h1>
                 <p>Upload images and ask questions via voice or text!</p>
@@ -664,7 +553,7 @@ async def web_interface():
                     }
                 }
             </script>
-            </body>
+        </body>
         </html>
         """)
 
@@ -676,8 +565,8 @@ def api_info():
         "version": "2.0",
         "description": "Voice-powered image analysis with Vapi integration",
         "features": {
-            "voice_input": bool(VAPI_API_KEY),
-            "voice_output": bool(VAPI_API_KEY),
+            "voice_input": voice_manager.is_voice_enabled(),
+            "voice_output": voice_manager.is_voice_enabled(),
             "image_analysis": bool(GEMINI_API_KEY),
             "session_management": True,
             "real_time_processing": True
@@ -702,10 +591,10 @@ def api_info():
                 "GET /api-info - This endpoint"
             ]
         },
-        "voice_enabled": bool(VAPI_API_KEY),
+        "voice_enabled": voice_manager.is_voice_enabled(),
         "gemini_enabled": bool(GEMINI_API_KEY)
     })
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000) 
