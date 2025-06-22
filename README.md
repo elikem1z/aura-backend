@@ -226,6 +226,4 @@ pip install -r requirements.txt
 - [ ] End-to-end demo
 - [ ] Presentation preparation
 
----
 
-**Good luck with your hackathon! 🚀** 
