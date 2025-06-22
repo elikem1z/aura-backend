@@ -520,15 +520,15 @@ async def get_image(image_id: str):
     try:
         image_info = image_storage.get(image_id)
         if not image_info:
-            raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image not found")
     
         return JSONResponse(content={
-            "image_id": image_id,
-            "filename": image_info["filename"],
-            "content_type": image_info["content_type"],
+        "image_id": image_id,
+        "filename": image_info["filename"],
+        "content_type": image_info["content_type"],
             "size": image_info["size"],
-            "user_id": image_info["user_id"],
-            "session_id": image_info["session_id"],
+        "user_id": image_info["user_id"],
+        "session_id": image_info["session_id"],
             "uploaded_at": image_info["uploaded_at"].isoformat()
         })
         
