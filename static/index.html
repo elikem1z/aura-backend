@@ -201,11 +201,8 @@
         <!-- Query Section -->
         <div class="query-section">
             <h2>🔍 Ask Questions</h2>
-            <input type="text" id="imageId" placeholder="Image ID (auto-filled after upload)" readonly>
             <textarea id="query" placeholder="Ask about the image..." rows="3">What do you see in this image? Please describe it in detail for someone who is visually impaired.</textarea>
-            <button class="voice-btn" id="recordBtn" onclick="toggleRecording()">🎤 Record Voice Query</button>
-            <span id="recordingStatus" style="margin-left:10px;color:#1976d2;font-weight:bold;"></span>
-            <button class="analyze-btn" onclick="analyzeImage()">🔍 Analyze Image</button>
+            <button class="analyze-btn" onclick="analyzeImage()">🎤 Analyze with Voice</button>
             <div id="analysisStatus"></div>
         </div>
     </div>
@@ -214,8 +211,6 @@
         const API_BASE = 'http://127.0.0.1:8000';
         let currentImageId = null;
         let currentSessionId = null;
-        let recognizing = false;
-        let recognition;
         let lastAudio;
         
         // Auto-create voice session on page load
@@ -319,63 +314,20 @@
                 const result = await response.json();
                 currentImageId = result.image_id;
                 
-                // Auto-fill image ID in query section
-                document.getElementById('imageId').value = result.image_id;
-                
-                showSuccess(`✅ Image uploaded successfully! ID: ${result.image_id}`, 'uploadStatus');
+                showSuccess(`✅ Image uploaded successfully!`, 'uploadStatus');
                 
             } catch (error) {
                 showError(`❌ Upload failed: ${error.message}`, 'uploadStatus');
             }
         }
         
-        // --- Voice Recording Logic ---
-        function toggleRecording() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('Sorry, your browser does not support speech recognition.');
-                return;
-            }
-            if (!recognition) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SpeechRecognition();
-                recognition.lang = 'en-US';
-                recognition.interimResults = false;
-                recognition.maxAlternatives = 1;
-                recognition.onstart = function() {
-                    recognizing = true;
-                    document.getElementById('recordingStatus').textContent = 'Recording...';
-                    document.getElementById('recordBtn').textContent = '⏹️ Stop Recording';
-                };
-                recognition.onend = function() {
-                    recognizing = false;
-                    document.getElementById('recordingStatus').textContent = '';
-                    document.getElementById('recordBtn').textContent = '🎤 Record Voice Query';
-                };
-                recognition.onerror = function(event) {
-                    recognizing = false;
-                    document.getElementById('recordingStatus').textContent = 'Error: ' + event.error;
-                    document.getElementById('recordBtn').textContent = '🎤 Record Voice Query';
-                };
-                recognition.onresult = function(event) {
-                    const transcript = event.results[0][0].transcript;
-                    document.getElementById('query').value = transcript;
-                };
-            }
-            if (recognizing) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        }
-        
         async function analyzeImage() {
-            const imageId = document.getElementById('imageId').value.trim();
-            const query = document.getElementById('query').value.trim();
-            
-            if (!imageId) {
+            if (!currentImageId) {
                 showError('❌ Please upload an image first.', 'analysisStatus');
                 return;
             }
+            
+            const query = document.getElementById('query').value.trim();
             
             if (!query) {
                 showError('❌ Please enter a query.', 'analysisStatus');
@@ -393,7 +345,7 @@
             
             try {
                 const requestBody = {
-                    image_id: imageId,
+                    image_id: currentImageId,
                     query: query
                 };
                 
@@ -418,10 +370,7 @@
                 // Display result
                 let resultHtml = `
                     <div class="status success">
-                        <strong>✅ Analysis Complete!</strong><br>
-                        <strong>Image ID:</strong> ${result.image_id}<br>
-                        <strong>Query:</strong> "${query}"<br>
-                        <strong>Response Length:</strong> ${result.description.length} characters
+                        <strong>✅ Analysis Complete!</strong>
                     </div>
                     <div style="margin-top: 20px; line-height: 1.6; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">
                         ${result.description}

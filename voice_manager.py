@@ -34,8 +34,8 @@ class VapiVoiceManager:
                 print("⚠️  VAPI_API_KEY not set, skipping TTS")
                 return None
             
-            # Use Vapi's TTS endpoint
-            url = f"{self.base_url}/assistant/tts"
+            # Use Vapi's TTS endpoint - try different endpoints
+            url = f"{self.base_url}/tts"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
