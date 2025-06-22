@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Vision Assistant - Test Interface</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .upload-section {
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #667eea;
+            background-color: #f7fafc;
+        }
+        
+        .upload-section.dragover {
+            border-color: #667eea;
+            background-color: #edf2f7;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .preview-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .query-section {
+            margin: 20px 0;
+        }
+        
+        .query-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+        }
+        
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .analyze-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-section h3 {
+            color: #4a5568;
+            margin-top: 0;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 Aura Vision Assistant</h1>
+        <p style="text-align: center; color: #718096; margin-bottom: 30px;">
+            Upload an image and get an AI-powered description of what's in it
+        </p>
+        
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <h3>📸 Upload Image</h3>
+            <p>Drag and drop an image here, or click to select</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Image
+            </button>
+        </div>
+        
+        <!-- Image Preview -->
+        <div class="preview-section hidden" id="previewSection">
+            <h3>🖼️ Image Preview</h3>
+            <img id="imagePreview" alt="Preview">
+        </div>
+        
+        <!-- Query Section -->
+        <div class="query-section hidden" id="querySection">
+            <h3>❓ What would you like to know?</h3>
+            <input type="text" 
+                   class="query-input" 
+                   id="queryInput" 
+                   placeholder="e.g., What do you see in this image? Describe it in detail."
+                   value="What do you see in this image? Please describe it in detail for someone who is visually impaired.">
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()">
+                🔍 Analyze with AI
+            </button>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="result-section hidden" id="resultSection">
+            <h3>🤖 AI Analysis Result</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+        let currentImageId = null;
+        
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        
+        // Drag and drop handling
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file.');
+                return;
+            }
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('previewSection').classList.remove('hidden');
+                document.getElementById('querySection').classList.remove('hidden');
+                document.getElementById('resultSection').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+            
+            // Upload to backend
+            uploadImage(file);
+        }
+        
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('user_id', 'web_user_' + Date.now());
+            formData.append('session_id', 'web_session_' + Date.now());
+            
+            try {
+                const response = await fetch(`${API_BASE}/upload-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                currentImageId = result.image_id;
+                
+                showSuccess(`Image uploaded successfully! ID: ${result.image_id}`);
+                
+            } catch (error) {
+                showError(`Upload failed: ${error.message}`);
+            }
+        }
+        
+        async function analyzeImage() {
+            if (!currentImageId) {
+                showError('No image uploaded. Please upload an image first.');
+                return;
+            }
+            
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                showError('Please enter a query.');
+                return;
+            }
+            
+            // Show loading state
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const originalText = analyzeBtn.textContent;
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🔍 Analyzing...';
+            
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            resultSection.classList.remove('hidden');
+            resultContent.innerHTML = '<div class="loading">Analyzing image with AI... This may take a few seconds.</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/analyze-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_id: currentImageId,
+                        query: query
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // Display result
+                resultContent.innerHTML = `
+                    <div class="success">
+                        <strong>✅ Analysis Complete!</strong><br>
+                        <strong>Image ID:</strong> ${result.image_id}<br>
+                        <strong>Query:</strong> "${query}"<br>
+                        <strong>Response Length:</strong> ${result.description.length} characters
+                    </div>
+                    <div style="margin-top: 20px; line-height: 1.6; white-space: pre-wrap;">
+                        ${result.description}
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">Analysis failed: ${error.message}</div>`;
+            } finally {
+                // Reset button
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = originalText;
+            }
+        }
+        
+        function showError(message) {
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            resultSection.classList.remove('hidden');
+            resultContent.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        function showSuccess(message) {
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            resultSection.classList.remove('hidden');
+            resultContent.innerHTML = `<div class="success">${message}</div>`;
+        }
+    </script>
+</body>
+</html> 
