@@ -34,8 +34,8 @@ class VapiVoiceManager:
                 print("⚠️  VAPI_API_KEY not set, skipping TTS")
                 return None
             
-            # Use Vapi's TTS endpoint - try different endpoints
-            url = f"{self.base_url}/tts"
+            # Use Vapi's correct TTS endpoint
+            url = f"{self.base_url}/assistant/tts"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
@@ -43,7 +43,8 @@ class VapiVoiceManager:
             
             payload = {
                 "text": text,
-                "voice": voice
+                "voice": voice,
+                "model": "tts-1"
             }
             
             response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -62,10 +63,50 @@ class VapiVoiceManager:
                 return audio_url
             else:
                 print(f"❌ TTS failed: {response.status_code} - {response.text}")
-                return None
+                # Try alternative endpoint if first one fails
+                return await self._try_alternative_tts(text, voice)
                 
         except Exception as e:
             print(f"❌ TTS error: {e}")
+            return await self._try_alternative_tts(text, voice)
+    
+    async def _try_alternative_tts(self, text: str, voice: str = "alloy") -> Optional[str]:
+        """Try alternative TTS endpoints if the main one fails."""
+        try:
+            # Try OpenAI-compatible endpoint
+            url = "https://api.openai.com/v1/audio/speech"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "tts-1",
+                "input": text,
+                "voice": voice,
+                "response_format": "mp3"
+            }
+            
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                # Save audio file and return URL
+                audio_id = str(uuid.uuid4())
+                audio_filename = f"static/audio/{audio_id}.mp3"
+                os.makedirs("static/audio", exist_ok=True)
+                
+                with open(audio_filename, "wb") as f:
+                    f.write(response.content)
+                
+                audio_url = f"/static/audio/{audio_id}.mp3"
+                print(f"🎵 Generated TTS audio (alternative): {audio_url}")
+                return audio_url
+            else:
+                print(f"❌ Alternative TTS also failed: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Alternative TTS error: {e}")
             return None
     
     async def process_voice_query(self, session_id: str, query: str, image_analyzer_func) -> Dict[str, Any]:

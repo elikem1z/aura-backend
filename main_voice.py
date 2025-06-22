@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Aura Backend - Voice-First Vision Assistant v2.0
+Aura Vision Assistant - Voice-First Version
+
+A FastAPI server for image analysis with voice integration using Vapi and Google Gemini AI.
+This version prioritizes voice interactions and text-to-speech responses.
 
 Smart Architecture:
 1. Voice Input via Vapi - Users speak questions about images
@@ -16,29 +19,26 @@ Visit http://127.0.0.1:8000/ping to check if the server is running.
 Visit http://127.0.0.1:8000/ to use the web interface.
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import JSONResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
 import os
 import uuid
 import base64
 import requests
-import json
 from datetime import datetime
-from dotenv import load_dotenv
+from typing import Dict, Any, Optional, List
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import google.generativeai as genai
 
 # Import our custom modules
 from voice_manager import voice_manager
 from session_manager import session_manager
 
-# Load environment variables
-load_dotenv()
+# Initialize FastAPI app
+app = FastAPI(title="Aura Voice-First Vision Assistant", version="2.0.0")
 
-app = FastAPI(title="Aura Voice-First Vision Assistant", description="Voice-powered image analysis with Vapi integration", version="2.0")
-
-# Serve static files
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Pydantic models for request/response
