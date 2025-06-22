@@ -1,0 +1,24 @@
+# Ultra-minimal requirements (no Pydantic, no Rust)
+fastapi==0.104.1
+uvicorn==0.24.0
+starlette==0.27.0
+
+# HTTP and networking
+requests==2.31.0
+httpx==0.25.2
+
+# Environment and configuration
+python-dotenv==1.0.0
+
+# Google Cloud TTS dependencies
+google-cloud-texttospeech==2.16.3
+google-auth==2.23.4
+
+# Vapi SDK
+vapi-server-sdk==1.5.1
+
+# Image processing
+pillow==10.1.0
+
+# Utilities
+python-multipart==0.0.6 
