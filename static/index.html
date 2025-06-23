@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎤 Aura Voice-First Vision Assistant</title>
+    <title>Aura Voice-First Vision Assistant</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -179,9 +179,9 @@
         
         <!-- Upload Section -->
         <div class="upload-section">
-            <h2>📸 Upload Image</h2>
+            <h2>Upload Image</h2>
             <div class="upload-area" id="uploadArea">
-                <h3>📸 Upload Image</h3>
+                <h3>Upload Image</h3>
                 <p>Drag and drop an image here, or click to select</p>
                 <input type="file" id="fileInput" accept="image/*">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
@@ -191,7 +191,7 @@
             
             <!-- Image Preview -->
             <div class="preview-section hidden" id="previewSection">
-                <h3>🖼️ Image Preview</h3>
+                <h3>Image Preview</h3>
                 <img id="imagePreview" alt="Preview">
             </div>
             
@@ -200,7 +200,7 @@
         
         <!-- Query Section -->
         <div class="query-section">
-            <h2>🔍 Ask Questions</h2>
+            <h2>Ask Questions</h2>
             <textarea id="query" placeholder="Ask about the image..." rows="3">What do you see in this image? Please describe it in detail for someone who is visually impaired.</textarea>
             <button class="analyze-btn" onclick="analyzeImage()">🎤 Analyze with Voice</button>
             <div id="analysisStatus"></div>
@@ -314,23 +314,23 @@
                 const result = await response.json();
                 currentImageId = result.image_id;
                 
-                showSuccess(`✅ Image uploaded successfully!`, 'uploadStatus');
+                showSuccess(`Image uploaded successfully!`, 'uploadStatus');
                 
             } catch (error) {
-                showError(`❌ Upload failed: ${error.message}`, 'uploadStatus');
+                showError(`Upload failed: ${error.message}`, 'uploadStatus');
             }
         }
         
         async function analyzeImage() {
             if (!currentImageId) {
-                showError('❌ Please upload an image first.', 'analysisStatus');
+                showError('Please upload an image first.', 'analysisStatus');
                 return;
             }
             
             const query = document.getElementById('query').value.trim();
             
             if (!query) {
-                showError('❌ Please enter a query.', 'analysisStatus');
+                showError('Please enter a query.', 'analysisStatus');
                 return;
             }
             
@@ -341,7 +341,7 @@
             analyzeBtn.textContent = '🔍 Analyzing...';
             
             const analysisStatus = document.getElementById('analysisStatus');
-            analysisStatus.innerHTML = '<div class="status info">🔄 Analyzing image with AI... This may take a few seconds.</div>';
+            analysisStatus.innerHTML = '<div class="status info">Analyzing image with AI... This may take a few seconds.</div>';
             
             try {
                 const requestBody = {
@@ -370,7 +370,7 @@
                 // Display result
                 let resultHtml = `
                     <div class="status success">
-                        <strong>✅ Analysis Complete!</strong>
+                        <strong>Analysis Complete!</strong>
                     </div>
                     <div style="margin-top: 20px; line-height: 1.6; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px;">
                         ${result.description}
@@ -381,7 +381,7 @@
                 if (result.audio_url) {
                     resultHtml += `
                         <div class="audio-player">
-                            <h4>🎵 Audio Response</h4>
+                            <h4>Audio Response</h4>
                             <audio id="ttsAudio" controls style="width: 100%;">
                                 <source src="${result.audio_url}" type="audio/mpeg">
                                 Your browser does not support audio playback.
@@ -402,7 +402,7 @@
                 }, 200);
                 
             } catch (error) {
-                analysisStatus.innerHTML = `<div class="status error">❌ Analysis failed: ${error.message}</div>`;
+                analysisStatus.innerHTML = `<div class="status error">Analysis failed: ${error.message}</div>`;
             } finally {
                 // Reset button
                 analyzeBtn.disabled = false;
