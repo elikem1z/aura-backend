@@ -1,8 +1,8 @@
-# 🔮 Aura: Conversational Vision Assistant Backend
+# Aura: Conversational Vision Assistant Backend
 
 A FastAPI backend for a conversational vision assistant designed to help visually impaired individuals using Meta Quest 3S. This backend integrates Vapi for voice conversations and Google Gemini for image analysis.
 
-## 🎯 Project Overview
+## Project Overview
 
 **Aura** is a hackathon project that provides real-time, conversational AI assistance for visually impaired users. When users ask about their surroundings, the system captures an image, analyzes it with AI, and provides detailed audio descriptions.
 
@@ -11,7 +11,7 @@ A FastAPI backend for a conversational vision assistant designed to help visuall
 User (Quest) → Vapi → Backend → Gemini → Backend → Vapi → User (Quest)
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.12+
@@ -54,7 +54,7 @@ User (Quest) → Vapi → Backend → Gemini → Backend → Vapi → User (Ques
 6. **Test the web interface**
    Visit: http://127.0.0.1:8000/
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 aura-backend/
@@ -83,7 +83,7 @@ aura-backend/
 ### Vapi Integration
 - `POST /webhook/vapi` - Receive function calls from Vapi
 
-## 🧪 Testing
+## Testing
 
 ### Automated Tests
 Run the comprehensive test suite:
@@ -102,7 +102,7 @@ python test_full_flow.py
 3. Ask a question
 4. See the AI analysis result
 
-## 🔗 Integration Guide
+## Integration Guide
 
 ### For Quest App Integration
 
@@ -140,7 +140,7 @@ Configure Vapi webhook to point to:
 http://your-backend/webhook/vapi
 ```
 
-## 🛠️ Development
+## 🛠Development
 
 ### Adding New Features
 1. Create feature branch
@@ -153,9 +153,9 @@ http://your-backend/webhook/vapi
 - **Development**: `uvicorn main:app --reload`
 - **Production**: `uvicorn main:app --host 0.0.0.0 --port 8000`
 
-## 📊 Current Status
+## Current Status
 
-✅ **Completed Features:**
+**Completed Features:**
 - FastAPI backend with all endpoints
 - Vapi SDK integration and testing
 - Google Gemini image analysis
@@ -164,11 +164,11 @@ http://your-backend/webhook/vapi
 - Image upload and storage
 - Error handling and fallbacks
 
-🔄 **In Progress:**
+**In Progress:**
 - Quest app integration (partner's work)
 - Vapi webhook configuration
 
-## 🤝 Team Collaboration
+## Team Collaboration
 
 ### Backend Developer (You)
 - Maintain and enhance the FastAPI backend
@@ -180,7 +180,7 @@ http://your-backend/webhook/vapi
 - Handle image capture and upload
 - Implement user interface and voice feedback
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -207,7 +207,7 @@ pip install -r requirements.txt
 3. Check API documentation
 4. Review error messages in web interface
 
-## 📈 Next Steps
+## Next Steps
 
 1. **Deploy to production server**
 2. **Set up monitoring and logging**
@@ -216,7 +216,7 @@ pip install -r requirements.txt
 5. **Add rate limiting and security**
 6. **Optimize for performance**
 
-## 🏆 Hackathon Goals
+## Hackathon Goals
 
 - [x] Backend API development
 - [x] AI integration (Gemini)
