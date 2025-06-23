@@ -41,6 +41,12 @@ google-credentials.json
 !package.json
 !tsconfig.json
 
+# Generated files
+static/audio/*.mp3
+static/images/*.jpg
+static/images/*.png
+static/images/*.jpeg
+
 # IDE
 .vscode/
 .idea/
