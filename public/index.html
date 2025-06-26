@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aura Vision Assistant</title>
+    <meta name="description" content="AURA - Advanced Voice-Only AI Vision Assistant with conversational intelligence">
+    <meta name="keywords" content="AI, voice assistant, image analysis, Google Gemini, conversational AI">
+    <meta name="author" content="AURA Team">
+    <title>AURA - Voice Vision Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2360a5fa'><circle cx='12' cy='12' r='3'/><path d='M12 1v6m0 6v6'/><path d='m21 12-6-3-6 3-6-3'/></svg>" type="image/svg+xml">
     <style>
         * {
             margin: 0;
@@ -815,11 +821,11 @@
                     Upload Image
                 </h2>
                 
-                <div class="upload-area" id="uploadArea">
-                    <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.6;"></i>
+                <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Click or drag to upload image">
+                    <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.6;" aria-hidden="true"></i>
                     <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Drop your image here</p>
-                    <p style="opacity: 0.6;">or click to browse</p>
-                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    <p style="opacity: 0.6;">or click to browse • Supports JPG, PNG, WebP</p>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;" aria-label="Image file input">
                 </div>
 
                 <div id="fileInfo" class="file-info" style="display: none;"></div>
