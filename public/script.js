@@ -307,8 +307,20 @@ class AuraVisionApp {
             this.recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
                 this.stopListening();
-                if (event.error !== 'no-speech') {
-                    this.showStatus('Voice recognition error. Please try again.', 'error');
+                
+                // Enhanced error handling
+                switch(event.error) {
+                    case 'no-speech':
+                        this.showStatus('No speech detected. Please try again.', 'info');
+                        break;
+                    case 'audio-capture':
+                        this.showStatus('Microphone access required for voice commands.', 'error');
+                        break;
+                    case 'not-allowed':
+                        this.showStatus('Microphone permission denied.', 'error');
+                        break;
+                    default:
+                        this.showStatus('Voice recognition error. Please try again.', 'error');
                 }
             };
             
