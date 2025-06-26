@@ -45,8 +45,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from React build
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/static', express.static(path.join(__dirname, 'static')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d', // Cache static files for 1 day
+  etag: true,
+  lastModified: true
+}));
+app.use('/static', express.static(path.join(__dirname, 'static'), {
+  maxAge: '1h', // Cache audio files for 1 hour
+  etag: true
+}));
 
 // Create directories if they don't exist
 const uploadsDir = path.join(__dirname, 'uploads');
