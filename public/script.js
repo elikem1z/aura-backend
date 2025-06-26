@@ -818,40 +818,10 @@ class AuraVisionApp {
         this.stopBtn.innerHTML = '<div class="loading"></div> Processing...';
         
         try {
-            const response = await fetch('/api/analyze-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Session-ID': this.sessionId
-                },
-                body: JSON.stringify({
-                    image_id: this.imageId,
-                    query: query,
-                    voice_response: this.voiceEnabled,
-                    model: this.selectedModel,
-                    session_id: this.sessionId
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'Analysis failed');
-            }
-            
-            this.displayAnalysisResult(result);
-            this.queryInput.value = '';
-            
-            if (result.audio_url && this.voiceEnabled) {
-                this.updateAssistantStatus('speaking', 'AURA Speaking...');
-                await this.playAudio(result.audio_url);
-                this.updateAssistantStatus('idle', 'AURA Ready - Say "Hey AURA"');
-            } else {
-                this.updateAssistantStatus('idle', 'AURA Ready - Say "Hey AURA"');
-            }
-            
+            await this.analyzeImageWithRetry(this.selectedFile, query);
         } catch (error) {
-            this.showStatus('Analysis error: ' + error.message, 'error');
+            console.error('Analysis failed after retries:', error);
+            this.showStatus('Analysis failed. Please try again.', 'error');
             this.updateAssistantStatus('idle', 'AURA Ready - Say "Hey AURA"');
         } finally {
             this.stopBtn.innerHTML = `
@@ -862,6 +832,59 @@ class AuraVisionApp {
             `;
             this.stopBtn.disabled = false;
             this.stopBtn.style.display = 'none';
+        }
+    }
+    
+    async analyzeImageWithRetry(imageFile, voiceText, maxRetries = 3) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('query', voiceText || 'Analyze this image');
+                formData.append('model', this.selectedModel);
+
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.handleSuccessfulAnalysis(result);
+                    return; // Success, exit retry loop
+                } else {
+                    throw new Error(result.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error(`Analysis attempt ${attempt} failed:`, error);
+                
+                if (attempt === maxRetries) {
+                    throw error; // Final attempt failed
+                }
+                
+                // Wait before retry (exponential backoff)
+                const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
+                this.showStatus(`Retrying... (attempt ${attempt + 1}/${maxRetries})`, 'info');
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    handleSuccessfulAnalysis(result) {
+        this.displayAnalysisResult(result);
+        this.queryInput.value = '';
+        
+        if (result.audio_url && this.voiceEnabled) {
+            this.updateAssistantStatus('speaking', 'AURA Speaking...');
+            this.playAudio(result.audio_url);
+            this.updateAssistantStatus('idle', 'AURA Ready - Say "Hey AURA"');
+        } else {
+            this.updateAssistantStatus('idle', 'AURA Ready - Say "Hey AURA"');
         }
     }
     
