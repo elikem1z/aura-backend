@@ -419,26 +419,27 @@ app.post('/api/generate-tts', async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Enhanced health endpoint with performance metrics
 app.get('/api/health', (req, res) => {
-  const uptime = process.uptime();
-  const memoryUsage = process.memoryUsage();
-  
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`,
-    version: '3.0.0',
-    type: 'unified_nodejs_advanced',
-    features: ['prompt_engineering', 'model_switching', 'voice_interaction', 'global_stats'],
-    available_models: Object.keys(AVAILABLE_MODELS).filter(key => !AVAILABLE_MODELS[key].deprecated),
-    memory: {
-      used: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
-      total: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`
-    },
-    sessions: userSessions.size,
-    images_stored: imageStorage.size
-  });
+    const memUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version || '3.1.0',
+        environment: process.env.NODE_ENV || 'development',
+        uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+        memory: {
+            rss: `${Math.round(memUsage.rss / 1024 / 1024)} MB`,
+            heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)} MB`,
+            heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)} MB`,
+            external: `${Math.round(memUsage.external / 1024 / 1024)} MB`
+        },
+        stats: promptEngine.getGlobalStats(),
+        models: Object.keys(AVAILABLE_MODELS).filter(key => !AVAILABLE_MODELS[key].deprecated),
+        features: ['voice_recognition', 'text_to_speech', 'image_analysis', 'prompt_engineering']
+    });
 });
 
 // Serve React app for all other routes
