@@ -39,7 +39,7 @@ AURA is a cutting-edge **voice-only** conversational AI vision assistant that co
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/aura-backend.git
+   git clone https://github.com/elikem1z/aura-backend.git
    cd aura-backend
    ```
 
@@ -204,7 +204,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ by the AURA Team**
 
-[🌐 Website](http://localhost:3000) • [📧 Contact](mailto:team@aura.ai) • [🐛 Issues](https://github.com/your-username/aura-backend/issues)
+[🌐 Website](http://localhost:3000) • [📧 Contact](mailto:team@aura.ai) • [🐛 Issues](https://github.com/elikem1z/aura-backend/issues)
 
 </div>
 
