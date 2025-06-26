@@ -113,7 +113,7 @@ async function analyzeImageWithGemini(imageData, query, sessionId, selectedModel
     const promptResult = promptEngine.generatePrompt(query, sessionId);
     const engineeredQuery = promptResult.engineeredPrompt;
     
-    console.log(`Using model: ${selectedModel}, Use case detected: ${promptResult.metadata.useCase}`);
+    console.log(`🔍 Analysis Request: Model=${selectedModel}, UseCase=${promptResult.metadata.useCase}, Query="${query}"`);
     
     const modelConfig = AVAILABLE_MODELS[selectedModel];
     if (!modelConfig) {
@@ -142,13 +142,14 @@ async function analyzeImageWithGemini(imageData, query, sessionId, selectedModel
           temperature: 0.3,
           topK: 10,
           topP: 0.7,
-          maxOutputTokens: 100,
+          maxOutputTokens: 75, // Even shorter for voice
         }
       },
       {
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        timeout: 30000 // 30 second timeout
       }
     );
 
@@ -411,13 +412,23 @@ app.post('/api/generate-tts', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+  
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`,
     version: '3.0.0',
     type: 'unified_nodejs_advanced',
     features: ['prompt_engineering', 'model_switching', 'voice_interaction', 'global_stats'],
-    available_models: Object.keys(AVAILABLE_MODELS).filter(key => !AVAILABLE_MODELS[key].deprecated)
+    available_models: Object.keys(AVAILABLE_MODELS).filter(key => !AVAILABLE_MODELS[key].deprecated),
+    memory: {
+      used: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+      total: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`
+    },
+    sessions: userSessions.size,
+    images_stored: imageStorage.size
   });
 });
 
@@ -479,8 +490,11 @@ setInterval(() => {
 }, 30 * 60 * 1000); // Run every 30 minutes
 
 app.listen(PORT, () => {
-  console.log(`🚀 AURA Advanced Vision Assistant running on port ${PORT}`);
-  console.log(`🌐 Access at: http://localhost:${PORT}`);
-  console.log(`🤖 Enhanced with Prompt Engineering & Model Switching`);
+  console.log('🚀 AURA Advanced Vision Assistant starting...');
+  console.log(`🌐 Server running on port ${PORT}`);
+  console.log(`🔗 Access at: http://localhost:${PORT}`);
+  console.log(`🤖 Features: Prompt Engineering, Model Switching, Voice Interaction`);
   console.log(`📊 Available Models: ${Object.keys(AVAILABLE_MODELS).filter(key => !AVAILABLE_MODELS[key].deprecated).join(', ')}`);
+  console.log(`💾 Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB used`);
+  console.log(`🎯 Ready for voice commands: "Hey AURA"`);
 }); 
