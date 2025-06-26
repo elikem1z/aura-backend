@@ -389,7 +389,7 @@ class AuraVisionApp {
     }
     
     respondToWakeWord() {
-        // Array of casual, short responses
+        // Array of casual, short responses with more variety
         const casualResponses = [
             "What's up?",
             "Hey there!",
@@ -405,7 +405,11 @@ class AuraVisionApp {
             "Hi there!",
             "Yeah, what's up?",
             "I'm listening!",
-            "What's on your mind?"
+            "What's on your mind?",
+            "Ready when you are!",
+            "Go ahead!",
+            "I'm all ears!",
+            "Talk to me!"
         ];
         
         // Pick a random casual response
@@ -522,6 +526,12 @@ class AuraVisionApp {
     setupEventListeners() {
         // File upload events
         this.uploadArea.addEventListener('click', () => this.imageInput.click());
+        this.uploadArea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.imageInput.click();
+            }
+        });
         this.imageInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.uploadBtn.addEventListener('click', () => this.uploadImage());
         
@@ -557,8 +567,10 @@ class AuraVisionApp {
     
     async updateDashboard() {
         try {
+            const startTime = performance.now();
             const response = await fetch('/api/stats');
             const stats = await response.json();
+            const loadTime = Math.round(performance.now() - startTime);
             
             if (this.globalImagesEl) {
                 this.animateValue(this.globalImagesEl, stats.totalImages);
@@ -569,8 +581,13 @@ class AuraVisionApp {
             if (this.activeSessionsEl) {
                 this.animateValue(this.activeSessionsEl, stats.activeSessions);
             }
+            
+            // Update connection status
+            console.log(`📊 Dashboard updated in ${loadTime}ms`);
         } catch (error) {
-            console.error('Failed to update dashboard:', error);
+            console.error('❌ Failed to update dashboard:', error);
+            // Show connection issue in UI
+            this.showStatus('Connection issue - retrying...', 'error');
         }
     }
     
@@ -653,7 +670,21 @@ class AuraVisionApp {
     
     handleFileSelect(event) {
         const file = event.target.files[0];
-        if (file && file.type.startsWith('image/')) {
+        if (file) {
+            // Enhanced file validation
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            
+            if (!validTypes.includes(file.type)) {
+                this.showStatus('Please select a valid image file (JPG, PNG, WebP, or GIF)', 'error');
+                return;
+            }
+            
+            if (file.size > maxSize) {
+                this.showStatus('File too large. Please select an image under 10MB.', 'error');
+                return;
+            }
+            
             this.selectedFile = file;
             this.showFileInfo(file);
             this.uploadBtn.disabled = false;
@@ -676,9 +707,25 @@ class AuraVisionApp {
         this.uploadArea.classList.remove('dragover');
         
         const files = event.dataTransfer.files;
-        if (files.length > 0 && files[0].type.startsWith('image/')) {
-            this.selectedFile = files[0];
-            this.showFileInfo(files[0]);
+        if (files.length > 0) {
+            const file = files[0];
+            
+            // Same validation as file select
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            
+            if (!validTypes.includes(file.type)) {
+                this.showStatus('Please drop a valid image file (JPG, PNG, WebP, or GIF)', 'error');
+                return;
+            }
+            
+            if (file.size > maxSize) {
+                this.showStatus('File too large. Please drop an image under 10MB.', 'error');
+                return;
+            }
+            
+            this.selectedFile = file;
+            this.showFileInfo(file);
             this.uploadBtn.disabled = false;
             this.clearStatus();
         }
@@ -686,9 +733,12 @@ class AuraVisionApp {
     
     showFileInfo(file) {
         const sizeInKB = (file.size / 1024).toFixed(1);
+        const sizeInMB = (file.size / 1024 / 1024).toFixed(2);
+        const displaySize = file.size > 1024 * 1024 ? `${sizeInMB} MB` : `${sizeInKB} KB`;
+        
         this.fileInfo.innerHTML = `
             <strong>${file.name}</strong><br>
-            Size: ${sizeInKB} KB • Type: ${file.type}
+            Size: ${displaySize} • Type: ${file.type.split('/')[1].toUpperCase()}
         `;
         this.fileInfo.style.display = 'block';
     }
