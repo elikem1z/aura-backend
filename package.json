@@ -1,12 +1,13 @@
 {
   "name": "aura-vision-advanced",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Advanced AURA Vision Assistant - Voice-Only Conversational AI with Prompt Engineering",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Tests not implemented yet\" && exit 0"
+    "test": "echo \"Tests not implemented yet\" && exit 0",
+    "health": "curl -s http://localhost:3000/api/health | node -e \"console.log(JSON.stringify(JSON.parse(require('fs').readFileSync(0)), null, 2))\""
   },
   "dependencies": {
     "express": "^4.18.2",
