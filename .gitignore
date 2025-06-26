@@ -28,6 +28,16 @@ ENV/
 env.bak/
 venv.bak/
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.node_repl_history
+*.tgz
+.yarn-integrity
+
 # Environment variables
 .env
 .env.local
@@ -39,13 +49,27 @@ venv.bak/
 google-credentials.json
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
+!vapi_config.json
+!railway.json
 
 # Generated files
 static/audio/*.mp3
 static/images/*.jpg
 static/images/*.png
 static/images/*.jpeg
+uploads/*.jpg
+uploads/*.png
+uploads/*.jpeg
+uploads/*.gif
+uploads/*.webp
+
+# Build outputs
+build/
+dist/
+frontend/build/
+backend/build/
 
 # IDE
 .vscode/
@@ -70,3 +94,9 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Legacy files (keeping for reference but not tracking)
+main_voice_simple.py
+voice_manager.py
+session_manager.py
+requirements.txt

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Vision Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0c1426 0%, #1a2332 50%, #2d3748 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Interactive Network Background */
+        #network-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Main Content */
+        .main-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            margin-bottom: 2rem;
+        }
+
+        .brand-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            color: #60a5fa;
+            filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.3));
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            opacity: 0.7;
+            font-weight: 300;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .status-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+            position: relative;
+        }
+
+        .status-dot.active {
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
+
+        .status-dot.active::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.2);
+            top: -4px;
+            left: -4px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Dashboard Stats */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(96, 165, 250, 0.3);
+            box-shadow: 0 10px 30px rgba(96, 165, 250, 0.1);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(59, 130, 246, 0.3));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+            color: #60a5fa;
+        }
+
+        .stat-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem 1rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+                margin-bottom: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .status-indicators {
+                flex-direction: row;
+                justify-content: center;
+            }
+            
+            .dashboard-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .stat-card {
+                padding: 1rem;
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+        }
+
+        /* Content Grid */
+        .content {
+            flex: 1;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            .header h1 {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(96, 165, 250, 0.3);
+            box-shadow: 0 20px 40px rgba(96, 165, 250, 0.1);
+        }
+
+        .card h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed rgba(96, 165, 250, 0.3);
+            border-radius: 15px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(96, 165, 250, 0.02);
+        }
+
+        .upload-area:hover {
+            border-color: rgba(96, 165, 250, 0.6);
+            background: rgba(96, 165, 250, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        /* Input Fields */
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            resize: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #60a5fa;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(96, 165, 250, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: #60a5fa;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active .toggle-slider {
+            transform: translateX(26px);
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status.info {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        /* Analysis Result */
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .result-card h3 {
+            margin-bottom: 1rem;
+            color: #60a5fa;
+        }
+
+        /* Audio Player */
+        .audio-player {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .play-btn {
+            background: #22c55e;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            background: #16a34a;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* File Info */
+        .file-info {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Voice Controls & Model Selection */
+        .model-selection {
+            margin-bottom: 1.5rem;
+        }
+
+        .model-select {
+            margin-bottom: 0.5rem;
+        }
+
+        .model-info {
+            padding: 0.5rem;
+            background: rgba(96, 165, 250, 0.1);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .voice-controls {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .voice-section {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .voice-icon {
+            width: 18px;
+            height: 18px;
+            color: #60a5fa;
+        }
+
+        .assistant-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .status-indicator {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.idle {
+            background: linear-gradient(135deg, rgba(107, 114, 128, 0.3), rgba(75, 85, 99, 0.3));
+        }
+
+        .status-indicator.listening {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3));
+            animation: listening-pulse 1.5s infinite;
+        }
+
+        .status-indicator.processing {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(59, 130, 246, 0.3));
+            animation: processing-spin 2s linear infinite;
+        }
+
+        .status-indicator.speaking {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(147, 51, 234, 0.3));
+            animation: speaking-wave 1s ease-in-out infinite alternate;
+        }
+
+        .assistant-icon {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .status-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes listening-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        @keyframes processing-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes speaking-wave {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Button Container for Stop Button Overlay */
+        .button-container {
+            position: relative;
+        }
+
+        .voice-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .voice-btn:hover {
+            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .voice-btn:disabled {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        }
+
+        .analyze-btn:hover {
+            box-shadow: 0 10px 20px rgba(96, 165, 250, 0.3);
+        }
+
+        .stop-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .stop-btn:hover {
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.5rem;
+        }
+
+        /* Enhanced Responsive Design */
+        @media (max-width: 768px) {
+            .voice-section {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .assistant-status {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .status-indicator {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .assistant-icon {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Analysis Results Enhancement */
+        .analysis-metadata {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .use-case-badge {
+            display: inline-block;
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="network-canvas"></canvas>
+    
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="brand-section">
+                    <div class="logo-container">
+                        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6"/>
+                            <path d="m21 12-6-3-6 3-6-3"/>
+                        </svg>
+                        <h1>AURA</h1>
+                    </div>
+                    <p class="tagline">Advanced Visual Intelligence Platform</p>
+                </div>
+                
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <div class="status-dot active"></div>
+                        <span>AI Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot active"></div>
+                        <span>Voice Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Stats -->
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="9" cy="9" r="2"/>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="globalImagesProcessed">0</div>
+                        <div class="stat-label">Total Images (Global)</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalAnalyses">0</div>
+                        <div class="stat-label">AI Analyses</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="activeSessions">0</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="currentModel">Flash</div>
+                        <div class="stat-label">Current Model</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="content">
+            <!-- Upload Section -->
+            <div class="card">
+                <h2>
+                    <i data-lucide="image"></i>
+                    Upload Image
+                </h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.6;"></i>
+                    <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Drop your image here</p>
+                    <p style="opacity: 0.6;">or click to browse</p>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                </div>
+
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+
+                <button class="btn" id="uploadBtn" disabled>
+                    <i data-lucide="upload"></i>
+                    Upload Image
+                </button>
+
+                <div id="uploadStatus"></div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="card">
+                <h2>AI Analysis</h2>
+                
+                <!-- Model Selection -->
+                <div class="model-selection">
+                    <label for="modelSelect">AI Model</label>
+                    <select id="modelSelect" class="input-field model-select">
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash - Fast & Efficient</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro - Advanced Analysis</option>
+                    </select>
+                    <div class="model-info" id="modelInfo">
+                        <small>Loading model information...</small>
+                    </div>
+                </div>
+                
+                <!-- Hidden Text Input (for voice-to-text processing only) -->
+                <div style="display: none;">
+                    <textarea 
+                        id="queryInput" 
+                        class="input-field" 
+                        rows="3" 
+                        placeholder="Voice input will appear here..."
+                    ></textarea>
+                </div>
+
+                <!-- Voice Interaction Controls -->
+                <div class="voice-controls">
+                    <h3 style="text-align: center; margin-bottom: 1rem; color: rgba(255, 255, 255, 0.9); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        Voice-Only Interface
+                    </h3>
+                    <p style="text-align: center; margin-bottom: 1.5rem; color: rgba(255, 255, 255, 0.7); font-size: 0.9rem;">
+                        Say "Hey AURA" or "AURA" to start, then ask your question
+                    </p>
+                    
+                    <div class="voice-section">
+                        <div class="toggle-container">
+                            <div class="toggle active" id="voiceInputToggle">
+                                <div class="toggle-slider"></div>
+                            </div>
+                            <span>Wake Word Detection</span>
+                            <svg class="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                        </div>
+                        
+                        <div class="toggle-container">
+                            <div class="toggle active" id="voiceToggle">
+                                <div class="toggle-slider"></div>
+                            </div>
+                            <span>Voice Response</span>
+                            <svg class="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Assistant Status Indicator -->
+                    <div class="assistant-status" id="assistantStatus">
+                        <div class="status-indicator idle" id="statusIndicator">
+                            <svg class="assistant-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6"/>
+                                <path d="m21 12-6-3-6 3-6-3"/>
+                            </svg>
+                        </div>
+                        <span class="status-text">AURA Ready - Say "Hey AURA"</span>
+                    </div>
+                </div>
+
+                <!-- Voice-Only Action Button -->
+                <div class="button-container">
+                    <button class="btn stop-btn" id="stopBtn" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12"/>
+                        </svg>
+                        Stop
+                    </button>
+                </div>
+
+                <div id="analysisResult"></div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Powered by Google Gemini AI • Google Cloud TTS • Built with Node.js</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="/script.js"></script>
+</body>
+</html> 
