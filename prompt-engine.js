@@ -24,12 +24,13 @@ class PromptEngine {
                 prompt: `You are AURA, a casual AI that explains images briefly. 
 
 RULES:
-- Keep responses under 50 words
+- Keep responses under 30 words (even shorter!)
 - No headers, sections, or formal structure  
 - Use HTML for DISPLAY: <strong>, <br>, <ul><li>
 - Write naturally for BOTH reading AND speaking
 - Avoid complex punctuation or symbols
 - Be conversational and friendly
+- Use casual language like talking to a friend
 
 Respond like you're casually describing the image to a friend.`
             },
@@ -175,6 +176,11 @@ Respond like you're casually describing the image to a friend.`
     }
     
     generatePrompt(query, sessionId, imageContext = {}) {
+        // Validate query length
+        if (query.length > 500) {
+            query = query.substring(0, 500) + '...';
+        }
+        
         const analysis = this.analyzeUserIntent(query, sessionId);
         const template = this.useCaseTemplates[analysis.useCase] || this.useCaseTemplates['general_analysis'];
         
@@ -191,7 +197,8 @@ Respond like you're casually describing the image to a friend.`
                 useCase: analysis.useCase,
                 confidence: analysis.confidence,
                 contextType: 'simple',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                queryLength: query.length
             }
         };
     }
